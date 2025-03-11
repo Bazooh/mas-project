@@ -10,7 +10,7 @@ import random
 from utils import Color
 
 if TYPE_CHECKING:
-    from .model import RobotMission
+    from model import RobotMission
 
 
 class Radioactivity(mesa.Agent):

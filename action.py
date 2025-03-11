@@ -103,4 +103,7 @@ class Merge(Action):
         if self.waste1.color != self.waste2.color:
             return False
 
+        if agent.color != self.waste1.color:
+            return False
+
         return self.waste1.color != Color.RED

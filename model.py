@@ -116,6 +116,9 @@ class RobotMission(mesa.Model):
     def is_any_waste_at(self, pos: Position) -> bool:
         return any(isinstance(cell, Waste) for cell in self.grid.iter_cell_list_contents([pos]))
 
+    def get_agents(self) -> list[Agent]:
+        return [cell for cell in self.grid.agents if isinstance(cell, Agent)]
+
     def place_agents(self, params: dict[Color, dict[str, int]]) -> None:
         for color, AgentInstantiator in zip(params, [GreenAgent, YellowAgent, RedAgent]):
             for agent_idx in range(self.n_agent[color]):
