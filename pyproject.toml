@@ -1,0 +1,6 @@
+[tool.ruff]
+
+include = ["**/*.py"]
+exclude = ["__pycache__/"]
+
+line-length = 125
