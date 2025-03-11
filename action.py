@@ -1,3 +1,9 @@
+"""
+Group: 14
+Members: Aymeric Conti, Pierre Jourdin
+Date: 11/03/2025
+"""
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -5,47 +11,43 @@ from utils import Direction
 
 if TYPE_CHECKING:
     from agent import Agent
+    from model import RobotMission
 
 
 class Action(ABC):
-    def __init__(self, agent: "Agent") -> None:
-        self.model = agent.model
-        self.agent = agent
+    @abstractmethod
+    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
 
     @abstractmethod
-    def apply(self) -> None: ...
-
-    @abstractmethod
-    def can_apply(self) -> bool: ...
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
 
 
 class Move(Action):
-    def __init__(self, agent: "Agent", direction: Direction) -> None:
-        super().__init__(agent)
+    def __init__(self, direction: Direction) -> None:
         self.direction = direction
 
-    def apply(self) -> None: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
 
-    def can_apply(self) -> bool: ...
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
 
     @staticmethod
-    def random(agent: "Agent") -> "Move":
-        return Move(agent, Direction.random())
+    def random() -> "Move":
+        return Move(Direction.random())
 
 
 class Pick(Action):
-    def apply(self) -> None: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
 
-    def can_apply(self) -> bool: ...
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
 
 
 class Drop(Action):
-    def apply(self) -> None: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
 
-    def can_apply(self) -> bool: ...
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
 
 
 class Merge(Action):
-    def apply(self) -> None: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
 
-    def can_apply(self) -> bool: ...
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
