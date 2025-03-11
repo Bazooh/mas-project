@@ -6,22 +6,19 @@ Date: 11/03/2025
 
 import mesa
 from typing import TYPE_CHECKING
-from enum import Enum
 import random
+from utils import Color
 
 if TYPE_CHECKING:
     from .model import RobotMission
 
-class Color(Enum):
-    GREEN = 1
-    YELLOW = 2
-    RED = 3
+
 
 class Radioactivity(mesa.Agent):
 
 
     model: "RobotMission" # type: ignore
-    def __init__(self, model: "RobotMission", color: Color, seed=1):
+    def __init__(self, model: "RobotMission", color: Color, seed=1, x=0, y=0):
         """initialize a Radioactivity instance.
 
         Args:
@@ -31,8 +28,10 @@ class Radioactivity(mesa.Agent):
         super().__init__(model)
         self.color = color
         self.seed = seed
+        self.x = x
+        self.y = y
 
-        random.seed(seed)
+        random.seed(self.seed)
 
         self.level = 0
         self.instanciate_level()
