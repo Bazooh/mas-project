@@ -10,7 +10,7 @@ import random
 
 from action import Action
 from agent import Agent, GreenAgent, YellowAgent, RedAgent
-from objects import Radioactivity
+from objects import Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
 
@@ -48,22 +48,28 @@ class RobotMission(mesa.Model):
 
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
 
-        self.green_yellow_border = int(self.width * self.radioactivity_proportions[0])
-        self.yellow_red_border = int(self.width * (self.radioactivity_proportions[0] + self.radioactivity_proportions[1]))
+        green_yellow_border = int(self.width * self.radioactivity_proportions[0])
+        yellow_red_border = int(self.width * (self.radioactivity_proportions[0] + self.radioactivity_proportions[1]))
         # green region is from 0 inclusive to green_yellow_border exclusive
         # yellow region is from green_yellow_border inclusive to yellow_red_border exclusive
         # red region is from yellow_red_border inclusive to width exclusive
 
-        self.place_radioactivity()
+        self.place_radioactivity(green_yellow_border, yellow_red_border)
 
-        self.place_agents()
+        self.place_agents(
+            {
+                Color.GREEN: {"inventory_capacity": 2},
+                Color.YELLOW: {"inventory_capacity": 2},
+                Color.RED: {"inventory_capacity": 1},
+            }
+        )
 
-    def place_radioactivity(self):
+    def place_radioactivity(self, green_yellow_border: int, yellow_red_border: int) -> None:
         for x in range(0, self.width):
             for y in range(0, self.height):
-                if x < self.green_yellow_border:
+                if x < green_yellow_border:
                     color = Color.GREEN
-                elif x < self.yellow_red_border:
+                elif x < yellow_red_border:
                     color = Color.YELLOW
                 else:
                     color = Color.RED
@@ -88,13 +94,21 @@ class RobotMission(mesa.Model):
     def is_any_agent_at(self, pos: Position) -> bool:
         return any(isinstance(cell, Agent) for cell in self.grid.iter_cell_list_contents([pos]))
 
-    def place_agents(self):
-        for color, AgentInstantiator in zip(Color, [GreenAgent, YellowAgent, RedAgent]):
+    def get_waste_at(self, pos: Position) -> Waste:
+        cells = [cell for cell in self.grid.iter_cell_list_contents([pos]) if isinstance(cell, Waste)]
+        assert len(cells) <= 1, "Multiple wastes at the same position"
+        assert len(cells) >= 1, "No waste at this position"
+        return cells[0]
+
+    def is_any_waste_at(self, pos: Position) -> bool:
+        return any(isinstance(cell, Waste) for cell in self.grid.iter_cell_list_contents([pos]))
+
+    def place_agents(self, params: dict[Color, dict[str, int]]) -> None:
+        for color, AgentInstantiator in zip(params, [GreenAgent, YellowAgent, RedAgent]):
             for agent_idx in range(self.n_agent[color]):
                 pos = self.get_random_pos_with_color(color)
-                perception = Perception(pos)
 
-                self.grid.place_agent(AgentInstantiator(self, color, perception), pos)
+                self.grid.place_agent(AgentInstantiator(self, color, Perception(pos), **params[color]), pos)
 
     def step(self) -> None:
         agents = list(self.agents)

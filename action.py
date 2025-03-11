@@ -9,7 +9,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from utils import Direction, Position
+from objects import Waste
+from utils import Color, Direction, Position
 
 if TYPE_CHECKING:
     from agent import Agent
@@ -40,8 +41,6 @@ class Move(Action):
         return pos[0] + self.direction.to_coords()[0], pos[1] + self.direction.to_coords()[1]
 
     def apply(self, model: "RobotMission", agent: "Agent") -> None:
-        assert self.can_apply(model, agent), "Trying to apply an invalid action"
-
         model.grid.move_agent(agent, self.get_new_pos(agent.get_true_pos()))
 
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
@@ -55,24 +54,53 @@ class Move(Action):
 
         return agent.color >= model.get_color_at(new_pos)
 
-    @staticmethod
-    def random() -> Move:
-        return Move(Direction.random())
-
 
 class Pick(Action):
-    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None:
+        waste = model.get_waste_at(agent.get_true_pos())
 
-    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
+        agent.inventory.append(waste)
+        model.grid.remove_agent(waste)
+
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
+        if agent.is_inventory_full():
+            return False
+
+        return model.is_any_waste_at(agent.get_true_pos())
 
 
 class Drop(Action):
-    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
+    def __init__(self, waste: Waste) -> None:
+        self.waste = waste
 
-    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None:
+        agent.inventory.remove(self.waste)
+        model.grid.place_agent(self.waste, agent.get_true_pos())
+
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
+        if self.waste not in agent.inventory:
+            return False
+
+        return not model.is_any_waste_at(agent.get_true_pos())
 
 
 class Merge(Action):
-    def apply(self, model: "RobotMission", agent: "Agent") -> None: ...
+    def __init__(self, waste1: Waste, waste2: Waste) -> None:
+        self.waste1 = waste1
+        self.waste2 = waste2
 
-    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
+    def apply(self, model: "RobotMission", agent: "Agent") -> None:
+        agent.inventory.remove(self.waste1)
+        agent.inventory.remove(self.waste2)
+
+        new_waste = Waste(model, Color(self.waste1.color.value + 1))
+        agent.inventory.append(new_waste)
+
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
+        if self.waste1 not in agent.inventory or self.waste2 not in agent.inventory:
+            return False
+
+        if self.waste1.color != self.waste2.color:
+            return False
+
+        return self.waste1.color != Color.RED

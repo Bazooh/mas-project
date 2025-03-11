@@ -7,7 +7,7 @@ Date: 11/03/2025
 import mesa
 from typing import TYPE_CHECKING
 import random
-from utils import Color, Position
+from utils import Color
 
 if TYPE_CHECKING:
     from .model import RobotMission
@@ -41,11 +41,11 @@ class Radioactivity(mesa.Agent):
 class Waste(mesa.Agent):
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", pos: Position):
+    def __init__(self, model: "RobotMission", color: Color):
         """initialize a Waste instance.
 
         Args:
             model: A model instance
         """
         super().__init__(model)
-        self.pos = pos
+        self.color = color

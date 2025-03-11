@@ -13,7 +13,7 @@ from knowledge import PositionKnowledge
 from action import Action, Move
 from objects import Waste
 from perception import Perception
-from utils import Color
+from utils import Color, Direction, Position
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -24,7 +24,7 @@ class Agent(mesa.Agent, ABC):
 
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", color: Color, perception: Perception) -> None:
+    def __init__(self, model: "RobotMission", color: Color, perception: Perception, inventory_capacity: int) -> None:
         """initialize a MoneyAgent instance.
 
         Args:
@@ -35,9 +35,14 @@ class Agent(mesa.Agent, ABC):
         self.perception = perception
         self.color = color
         self.inventory: list[Waste] = []
+        self.inventory_capacity = inventory_capacity
 
-    def get_true_pos(self) -> tuple[int, int]:
-        return cast(tuple[int, int], self.pos)
+    def is_inventory_full(self) -> bool:
+        return len(self.inventory) >= self.inventory_capacity
+
+    def get_true_pos(self) -> Position:
+        assert self.pos is not None, "Trying to get the position of an agent that is not placed"
+        return cast(Position, self.pos)
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
@@ -50,7 +55,7 @@ class Agent(mesa.Agent, ABC):
 
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
-        return Move.random()
+        return Move(Direction.random())
 
 
 GreenAgent = RandomAgent
