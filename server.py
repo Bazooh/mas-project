@@ -13,13 +13,13 @@ from utils import Color
 def agent_portrayal(agent):
     if isinstance(agent, Radioactivity):
         if agent.color == Color.GREEN:
-            return {"color": "#a0e861", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
+            return {"color": "#e4fade", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
         elif agent.color == Color.YELLOW:
-            return {"color": "#e8e664", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
+            return {"color": "#f5f3c9", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
         elif agent.color == Color.RED:
-            return {"color": "#ff8378", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
+            return {"color": "#fadede", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
     if isinstance(agent, Agent):
-        return {"color": "tab:blue", "size": 100, "zorder": 1}  # Default portrayal
+        return {"color": agent.color.to_hex(), "marker": "o", "size": 100, "zorder": 1}  # Default portrayal
     return {"color": "tab:blue", "size": 10}  # Default portrayal
 
 # Create initial model instance
