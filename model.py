@@ -58,20 +58,10 @@ class RobotMission(mesa.Model):
         self.place_agents()
 
     def place_radioactivity(self):
-        # place green radioactivity
-        for i in range(0, self.green_yellow_border):
-            for j in range(0, self.height):
-                self.grid.place_agent(Radioactivity(self, Color.GREEN, x=i, y=j), (i, j))
-
-        # place yellow radioactivity
-        for i in range(self.green_yellow_border, self.yellow_red_border):
-            for j in range(0, self.height):
-                self.grid.place_agent(Radioactivity(self, Color.YELLOW, x=i, y=j), (i, j))
-
-        # place red radioactivity
-        for i in range(self.yellow_red_border, self.width):
-            for j in range(0, self.height):
-                self.grid.place_agent(Radioactivity(self, Color.RED, x=i, y=j), (i, j))
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                pos = x, y
+                self.grid.place_agent(Radioactivity(self, self.get_zone(pos)), pos)
 
     def is_in_zone(self, pos: tuple[int, int], color: Color) -> bool:
         x, y = pos
@@ -85,6 +75,13 @@ class RobotMission(mesa.Model):
             return self.green_yellow_border <= x < self.yellow_red_border
         elif color == Color.RED:
             return self.yellow_red_border <= x < self.width
+
+    def get_zone(self, pos: tuple[int, int]) -> Color:
+        x, y = pos
+        for color in Color:
+            if self.is_in_zone(pos, color):
+                return color
+        raise ValueError("Invalid position")
 
     def get_random_pos_in_zone(self, color: Color) -> tuple[int, int]:
         y = random.randint(0, self.height - 1)

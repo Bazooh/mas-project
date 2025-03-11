@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, cast
 
 from knowledge import PositionKnowledge
 from action import Action, Move
+from objects import Waste
 from perception import Perception
 from utils import Color
 
@@ -33,6 +34,7 @@ class Agent(mesa.Agent, ABC):
         self.knowledge = PositionKnowledge()
         self.perception = perception
         self.color = color
+        self.inventory: list[Waste] = []
 
     def get_true_pos(self) -> tuple[int, int]:
         return cast(tuple[int, int], self.pos)
