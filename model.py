@@ -5,11 +5,12 @@ Date: 11/03/2025
 """
 
 import mesa
+import random
 
+from action import Action
 from agent import RandomAgent as GreenAgent
 from agent import RandomAgent as YellowAgent
 from agent import RandomAgent as RedAgent
-import random
 from objects import Radioactivity
 from utils import Color
 
@@ -90,9 +91,4 @@ class RobotMission(mesa.Model):
             y = random.randint(0, self.height - 1)
             self.grid.place_agent(RedAgent(self, x, y), (x, y))
 
-    
-
-    def step(self):
-        """do one step of the model"""
-        self.agents.shuffle_do("step")
-        self.datacollector.collect(self)
+    def do(self, action: Action): ...

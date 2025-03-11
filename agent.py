@@ -10,9 +10,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from knowledge import Knowledge
+from action import Action, Move
 
 if TYPE_CHECKING:
-    from model import RobotMission, Action
+    from model import RobotMission
 
 
 class Agent(mesa.Agent, ABC):
@@ -20,7 +21,7 @@ class Agent(mesa.Agent, ABC):
 
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission"):
+    def __init__(self, model: "RobotMission", x: int, y: int):
         """initialize a MoneyAgent instance.
 
         Args:
@@ -41,4 +42,4 @@ class Agent(mesa.Agent, ABC):
 
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
-        return Action.random()
+        return Move.random(self)
