@@ -7,6 +7,7 @@ Date: 11/03/2025
 import mesa
 from .agent import greenAgent, yellowAgent, redAgent
 from .objects import Radioactivity
+from utils import Color
 
 class RobotMission(mesa.Model):
     def __init__(self, width = 10, height = 10, n_green_agents = 1, n_yellow_agents = 1, n_red_agents = 1, radioactivity_proportions:list[float] = [1/3, 1/3, 1/3], seed=1):
@@ -38,13 +39,8 @@ class RobotMission(mesa.Model):
     def place_radioactivity(self):
         # place green radioactivity
         for i in range(0, self.green_yellow_border):
-            self.grid.place_agent(greenAgent(self), (i,0))
-        # place yellow radioactivity
-        for i in range(self.green_yellow_border, self.yellow_red_border):
-            self.grid.place_agent(yellowAgent(self), (i,0))
-        # place red radioactivity
-        for i in range(self.yellow_red_border, self.width):
-            self.grid.place_agent(redAgent(self), (i,0))
+            for j in range(0, self.height):
+                self.grid.place_agent(Radioactivity(self, Color.GREEN, x=i, y=j), (i, j))
 
 
     def step(self):
