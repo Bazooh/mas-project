@@ -12,6 +12,7 @@ from agent import RandomAgent as GreenAgent
 from agent import RandomAgent as YellowAgent
 from agent import RandomAgent as RedAgent
 from objects import Radioactivity
+from perception import Perception
 from utils import Color
 
 
@@ -91,4 +92,4 @@ class RobotMission(mesa.Model):
             y = random.randint(0, self.height - 1)
             self.grid.place_agent(RedAgent(self, x, y), (x, y))
 
-    def do(self, action: Action): ...
+    def do(self, action: Action) -> Perception: ...

@@ -9,8 +9,9 @@ import mesa
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from knowledge import Knowledge
+from knowledge import PositionKnowledge
 from action import Action, Move
+from perception import Perception
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -28,8 +29,8 @@ class Agent(mesa.Agent, ABC):
             model: A model instance
         """
         super().__init__(model)
-        self.knowledge = Knowledge()
-        self.perception = {}
+        self.knowledge = PositionKnowledge()
+        self.perception = Perception(x, y)
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
