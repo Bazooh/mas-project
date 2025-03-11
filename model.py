@@ -55,6 +55,7 @@ class RobotMission(mesa.Model):
         # red region is from yellow_red_border inclusive to width exclusive
 
         self.place_radioactivity(green_yellow_border, yellow_red_border)
+        self.place_waste(10)
 
         self.place_agents(
             {
@@ -75,21 +76,33 @@ class RobotMission(mesa.Model):
                     color = Color.RED
                 self.grid.place_agent(Radioactivity(self, color), (x, y))
 
+    def place_waste(self, n: int) -> None:
+        for _ in range(n):
+            pos = self.get_random_pos_with_color(Color.GREEN, no_waste=True)
+            self.grid.place_agent(Waste(self, Color.GREEN), pos)
+
     def get_color_at(self, pos: Position) -> Color:
         for cell in self.grid.iter_cell_list_contents([pos]):
             if isinstance(cell, Radioactivity):
                 return cell.color
         raise ValueError("No radioactivity found at this position")
 
-    def iter_pos_with_color(self, color: Color) -> Iterator[Position]:
+    def iter_pos_with_color(self, color: Color, no_agent=False, no_waste=False) -> Iterator[Position]:
         for cells, pos in self.grid.coord_iter():
             cells = cast(mesa.space.MultiGridContent, cells)
+
+            if no_agent and self.is_any_agent_at(pos):
+                continue
+
+            if no_waste and self.is_any_waste_at(pos):
+                continue
+
             for cell in cells:
                 if isinstance(cell, Radioactivity) and cell.color == color:
                     yield pos
 
-    def get_random_pos_with_color(self, color: Color) -> Position:
-        return random.choice(list(self.iter_pos_with_color(color)))
+    def get_random_pos_with_color(self, color: Color, no_agent=False, no_waste=False) -> Position:
+        return random.choice(list(self.iter_pos_with_color(color, no_agent, no_waste)))
 
     def is_any_agent_at(self, pos: Position) -> bool:
         return any(isinstance(cell, Agent) for cell in self.grid.iter_cell_list_contents([pos]))
@@ -106,7 +119,7 @@ class RobotMission(mesa.Model):
     def place_agents(self, params: dict[Color, dict[str, int]]) -> None:
         for color, AgentInstantiator in zip(params, [GreenAgent, YellowAgent, RedAgent]):
             for agent_idx in range(self.n_agent[color]):
-                pos = self.get_random_pos_with_color(color)
+                pos = self.get_random_pos_with_color(color, no_agent=True)
 
                 self.grid.place_agent(AgentInstantiator(self, color, Perception(pos), **params[color]), pos)
 
