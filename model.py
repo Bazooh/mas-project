@@ -4,14 +4,11 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
-from typing import cast
 import mesa
 import random
 
 from action import Action
-from agent import Agent, RandomAgent as GreenAgent
-from agent import RandomAgent as YellowAgent
-from agent import RandomAgent as RedAgent
+from agent import Agent, GreenAgent, YellowAgent, RedAgent
 from objects import Radioactivity
 from perception import Perception
 from utils import Color
@@ -20,13 +17,13 @@ from utils import Color
 class RobotMission(mesa.Model):
     def __init__(
         self,
-        width=10,
-        height=10,
-        n_green_agents=1,
-        n_yellow_agents=1,
-        n_red_agents=1,
+        width: int = 10,
+        height: int = 10,
+        n_green_agents: int = 1,
+        n_yellow_agents: int = 1,
+        n_red_agents: int = 1,
         radioactivity_proportions: list[float] = [1 / 3, 1 / 3, 1 / 3],
-        seed=1,
+        seed: int | None = None,
     ):
         """Initialize a RobotMission instance.
 
@@ -41,9 +38,11 @@ class RobotMission(mesa.Model):
         random.seed(seed)
         self.width = width
         self.height = height
-        self.n_green_agents = n_green_agents
-        self.n_yellow_agents = n_yellow_agents
-        self.n_red_agents = n_red_agents
+        self.n_agent = {
+            Color.GREEN: n_green_agents,
+            Color.YELLOW: n_yellow_agents,
+            Color.RED: n_red_agents,
+        }
         self.radioactivity_proportions = radioactivity_proportions
 
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
@@ -74,28 +73,42 @@ class RobotMission(mesa.Model):
             for j in range(0, self.height):
                 self.grid.place_agent(Radioactivity(self, Color.RED, x=i, y=j), (i, j))
 
-    def place_agents(self):
-        # place green agents
-        for agent_idx in range(self.n_green_agents):
+    def is_in_zone(self, pos: tuple[int, int], color: Color) -> bool:
+        x, y = pos
+
+        if y < 0 or y >= self.height:
+            return False
+
+        if color == Color.GREEN:
+            return 0 <= x < self.green_yellow_border
+        elif color == Color.YELLOW:
+            return self.green_yellow_border <= x < self.yellow_red_border
+        elif color == Color.RED:
+            return self.yellow_red_border <= x < self.width
+
+    def get_random_pos_in_zone(self, color: Color) -> tuple[int, int]:
+        y = random.randint(0, self.height - 1)
+        if color == Color.GREEN:
             x = random.randint(0, self.green_yellow_border - 1)
-            y = random.randint(0, self.height - 1)
-            self.grid.place_agent(GreenAgent(self, Color.GREEN, x, y), (x, y))
-
-        # place yellow agents
-        for agent_idx in range(self.n_yellow_agents):
+        elif color == Color.YELLOW:
             x = random.randint(self.green_yellow_border, self.yellow_red_border - 1)
-            y = random.randint(0, self.height - 1)
-            self.grid.place_agent(YellowAgent(self, Color.YELLOW, x, y), (x, y))
-
-        # place red agents
-        for agent_idx in range(self.n_red_agents):
+        elif color == Color.RED:
             x = random.randint(self.yellow_red_border, self.width - 1)
-            y = random.randint(0, self.height - 1)
-            self.grid.place_agent(RedAgent(self, Color.RED, x, y), (x, y))
+        return x, y
+
+    def place_agents(self):
+        for color, AgentInstantiator in zip(Color, [GreenAgent, YellowAgent, RedAgent]):
+            for agent_idx in range(self.n_agent[color]):
+                pos = self.get_random_pos_in_zone(color)
+                perception = Perception(pos)
+
+                self.grid.place_agent(AgentInstantiator(self, color, perception), pos)
+
+    def step(self) -> None:
+        for agent in self.agents:
+            agent.step()
 
     def do(self, action: Action, agent: Agent) -> Perception:
         if action.can_apply(self, agent):
             action.apply(self, agent)
-
-        new_pos = cast(tuple[int, int], agent.pos)
-        return Perception(new_pos[0], new_pos[1])
+        return Perception(agent.get_true_pos())

@@ -8,6 +8,9 @@ from enum import Enum
 import random
 
 
+Position = tuple[int, int]
+
+
 class Color(Enum):
     GREEN = 1
     YELLOW = 2
@@ -29,3 +32,14 @@ class Direction(Enum):
     @staticmethod
     def random() -> "Direction":
         return random.choice(list(Direction))
+
+    def to_coords(self) -> Position:
+        if self == Direction.UP:
+            return 0, 1
+        elif self == Direction.DOWN:
+            return 0, -1
+        elif self == Direction.RIGHT:
+            return 1, 0
+        elif self == Direction.LEFT:
+            return -1, 0
+        raise ValueError("Invalid direction")

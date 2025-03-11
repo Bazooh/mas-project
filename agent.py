@@ -7,7 +7,7 @@ Date: 11/03/2025
 import mesa
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from knowledge import PositionKnowledge
 from action import Action, Move
@@ -23,7 +23,7 @@ class Agent(mesa.Agent, ABC):
 
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", color: Color, x: int, y: int):
+    def __init__(self, model: "RobotMission", color: Color, perception: Perception) -> None:
         """initialize a MoneyAgent instance.
 
         Args:
@@ -31,8 +31,11 @@ class Agent(mesa.Agent, ABC):
         """
         super().__init__(model)
         self.knowledge = PositionKnowledge()
-        self.perception = Perception(x, y)
+        self.perception = perception
         self.color = color
+
+    def get_true_pos(self) -> tuple[int, int]:
+        return cast(tuple[int, int], self.pos)
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
@@ -46,3 +49,8 @@ class Agent(mesa.Agent, ABC):
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
         return Move.random()
+
+
+GreenAgent = RandomAgent
+YellowAgent = RandomAgent
+RedAgent = RandomAgent
