@@ -5,11 +5,25 @@ Date: 11/03/2025
 """
 
 import mesa
-from .agent import greenAgent, yellowAgent, redAgent
-from .objects import Radioactivity
+
+from agent import RandomAgent as GreenAgent
+from agent import RandomAgent as YellowAgent
+from agent import RandomAgent as RedAgent
+
+from objects import Radioactivity
+
 
 class RobotMission(mesa.Model):
-    def __init__(self, width = 10, height = 10, n_green_agents = 1, n_yellow_agents = 1, n_red_agents = 1, radioactivity_proportions:list[float] = [1/3, 1/3, 1/3], seed=1):
+    def __init__(
+        self,
+        width=10,
+        height=10,
+        n_green_agents=1,
+        n_yellow_agents=1,
+        n_red_agents=1,
+        radioactivity_proportions: list[float] = [1 / 3, 1 / 3, 1 / 3],
+        seed=1,
+    ):
         """Initialize a RobotMission instance.
 
         Args:
@@ -30,7 +44,7 @@ class RobotMission(mesa.Model):
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
 
         self.green_yellow_border = int(self.width * self.radioactivity_proportions[0])
-        self.yellow_red_border = int(self.width * (self.radioactivity_proportions[0]+ self.radioactivity_proportions[1]))
+        self.yellow_red_border = int(self.width * (self.radioactivity_proportions[0] + self.radioactivity_proportions[1]))
         # green region is from 0 inclusive to green_yellow_border exclusive
         # yellow region is from green_yellow_border inclusive to yellow_red_border exclusive
         # red region is from yellow_red_border inclusive to width exclusive
@@ -38,14 +52,13 @@ class RobotMission(mesa.Model):
     def place_radioactivity(self):
         # place green radioactivity
         for i in range(0, self.green_yellow_border):
-            self.grid.place_agent(greenAgent(self), (i,0))
+            self.grid.place_agent(GreenAgent(self), (i, 0))
         # place yellow radioactivity
         for i in range(self.green_yellow_border, self.yellow_red_border):
-            self.grid.place_agent(yellowAgent(self), (i,0))
+            self.grid.place_agent(YellowAgent(self), (i, 0))
         # place red radioactivity
         for i in range(self.yellow_red_border, self.width):
-            self.grid.place_agent(redAgent(self), (i,0))
-
+            self.grid.place_agent(RedAgent(self), (i, 0))
 
     def step(self):
         """do one step of the model"""
