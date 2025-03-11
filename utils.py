@@ -4,31 +4,26 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
-from enum import Enum
+from enum import IntEnum
 import random
 
 
 Position = tuple[int, int]
 
 
-class Color(Enum):
+class Color(IntEnum):
     GREEN = 1
     YELLOW = 2
     RED = 3
 
     def to_hex(self) -> str:
-        return {
-            Color.GREEN: "#2dbd3e", Color.YELLOW: "#dee038", Color.RED: "#e34d12"
-        }[self]
+        return {Color.GREEN: "#2dbd3e", Color.YELLOW: "#dee038", Color.RED: "#e34d12"}[self]
 
     def to_light_hex(self) -> str:
-        return {
-            Color.GREEN: "#e4fade", Color.YELLOW: "#f5f3c9", Color.RED: "#fadede"
-        }[self]
+        return {Color.GREEN: "#e4fade", Color.YELLOW: "#f5f3c9", Color.RED: "#fadede"}[self]
 
 
-
-class Direction(Enum):
+class Direction(IntEnum):
     UP = 1
     DOWN = 2
     RIGHT = 3

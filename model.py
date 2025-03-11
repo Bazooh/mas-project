@@ -4,6 +4,7 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
+from typing import Iterator, cast
 import mesa
 import random
 
@@ -11,7 +12,7 @@ from action import Action
 from agent import Agent, GreenAgent, YellowAgent, RedAgent
 from objects import Radioactivity
 from perception import Perception
-from utils import Color
+from utils import Color, Position
 
 
 class RobotMission(mesa.Model):
@@ -60,49 +61,45 @@ class RobotMission(mesa.Model):
     def place_radioactivity(self):
         for x in range(0, self.width):
             for y in range(0, self.height):
-                pos = x, y
-                self.grid.place_agent(Radioactivity(self, self.get_zone(pos)), pos)
+                if x < self.green_yellow_border:
+                    color = Color.GREEN
+                elif x < self.yellow_red_border:
+                    color = Color.YELLOW
+                else:
+                    color = Color.RED
+                self.grid.place_agent(Radioactivity(self, color), (x, y))
 
-    def is_in_zone(self, pos: tuple[int, int], color: Color) -> bool:
-        x, y = pos
+    def get_color_at(self, pos: Position) -> Color:
+        for cell in self.grid.iter_cell_list_contents([pos]):
+            if isinstance(cell, Radioactivity):
+                return cell.color
+        raise ValueError("No radioactivity found at this position")
 
-        if y < 0 or y >= self.height:
-            return False
+    def iter_pos_with_color(self, color: Color) -> Iterator[Position]:
+        for cells, pos in self.grid.coord_iter():
+            cells = cast(mesa.space.MultiGridContent, cells)
+            for cell in cells:
+                if isinstance(cell, Radioactivity) and cell.color == color:
+                    yield pos
 
-        if color == Color.GREEN:
-            return 0 <= x < self.green_yellow_border
-        elif color == Color.YELLOW:
-            return self.green_yellow_border <= x < self.yellow_red_border
-        elif color == Color.RED:
-            return self.yellow_red_border <= x < self.width
+    def get_random_pos_with_color(self, color: Color) -> Position:
+        return random.choice(list(self.iter_pos_with_color(color)))
 
-    def get_zone(self, pos: tuple[int, int]) -> Color:
-        x, y = pos
-        for color in Color:
-            if self.is_in_zone(pos, color):
-                return color
-        raise ValueError("Invalid position")
-
-    def get_random_pos_in_zone(self, color: Color) -> tuple[int, int]:
-        y = random.randint(0, self.height - 1)
-        if color == Color.GREEN:
-            x = random.randint(0, self.green_yellow_border - 1)
-        elif color == Color.YELLOW:
-            x = random.randint(self.green_yellow_border, self.yellow_red_border - 1)
-        elif color == Color.RED:
-            x = random.randint(self.yellow_red_border, self.width - 1)
-        return x, y
+    def is_any_agent_at(self, pos: Position) -> bool:
+        return any(isinstance(cell, Agent) for cell in self.grid.iter_cell_list_contents([pos]))
 
     def place_agents(self):
         for color, AgentInstantiator in zip(Color, [GreenAgent, YellowAgent, RedAgent]):
             for agent_idx in range(self.n_agent[color]):
-                pos = self.get_random_pos_in_zone(color)
+                pos = self.get_random_pos_with_color(color)
                 perception = Perception(pos)
 
                 self.grid.place_agent(AgentInstantiator(self, color, perception), pos)
 
     def step(self) -> None:
-        for agent in self.agents:
+        agents = list(self.agents)
+        random.shuffle(agents)
+        for agent in agents:
             agent.step()
 
     def do(self, action: Action, agent: Agent) -> Perception:
