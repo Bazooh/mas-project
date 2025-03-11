@@ -13,6 +13,12 @@ class Color(Enum):
     YELLOW = 2
     RED = 3
 
+    def to_hex(self) -> str:
+        return {
+            Color.GREEN: "#2dbd3e", Color.YELLOW: "#dee038", Color.RED: "#e34d12"
+        }[self]
+
+
 
 class Direction(Enum):
     UP = 1

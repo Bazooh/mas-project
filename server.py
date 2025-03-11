@@ -13,20 +13,23 @@ from utils import Color
 def agent_portrayal(agent):
     if isinstance(agent, Radioactivity):
         if agent.color == Color.GREEN:
-            return {"color": "green", "marker": "s", "size": 100}  # Full-cell rectangle
+            return {"color": "#a0e861", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
         elif agent.color == Color.YELLOW:
-            return {"color": "yellow", "marker": "s", "size": 100}  # Full-cell rectangle
+            return {"color": "#e8e664", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
         elif agent.color == Color.RED:
-            return {"color": "red", "marker": "s", "size": 100}  # Full-cell rectangle
+            return {"color": "#ff8378", "marker": "s", "size": 1200, "zorder": 0}  # Full-cell rectangle
     if isinstance(agent, Agent):
-        return {"color": "tab:red", "size": 10}  # Default portrayal
+        return {"color": "tab:blue", "size": 100, "zorder": 1}  # Default portrayal
     return {"color": "tab:blue", "size": 10}  # Default portrayal
 
 # Create initial model instance
 model = RobotMission()
 
 # Create only the grid visualization
-SpaceGraph = make_space_component(agent_portrayal)
+SpaceGraph = make_space_component(agent_portrayal,     propertylayer_portrayal={
+        "canvas_width": 200,  # Total width for 10 cells: 10 * 30px = 300px
+        "canvas_height": 20  # Total height for 10 cells: 10 * 20px = 200px
+    })
 
 # Create the Dashboard
 page = SolaraViz(
