@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from knowledge import PositionKnowledge
 from action import Action, Move
 from perception import Perception
+from utils import Color
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -22,7 +23,7 @@ class Agent(mesa.Agent, ABC):
 
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", x: int, y: int):
+    def __init__(self, model: "RobotMission", color: Color, x: int, y: int):
         """initialize a MoneyAgent instance.
 
         Args:
@@ -31,11 +32,12 @@ class Agent(mesa.Agent, ABC):
         super().__init__(model)
         self.knowledge = PositionKnowledge()
         self.perception = Perception(x, y)
+        self.color = color
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
         action = self.deliberate()
-        self.perception = self.model.do(action)
+        self.perception = self.model.do(action, self)
 
     @abstractmethod
     def deliberate(self) -> Action: ...
@@ -43,4 +45,4 @@ class Agent(mesa.Agent, ABC):
 
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
-        return Move.random(self)
+        return Move.random()
