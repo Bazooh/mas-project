@@ -11,16 +11,16 @@ from objects import Radioactivity
 from utils import Color
 
 def agent_portrayal(agent):
-    if isinstance(agent, Radioactivity):
-        if agent.color == Color.GREEN:
-            return {"color": "green", "marker": "s", "size": 100}  # Full-cell rectangle
-        elif agent.color == Color.YELLOW:
-            return {"color": "yellow", "marker": "s", "size": 100}  # Full-cell rectangle
-        elif agent.color == Color.RED:
-            return {"color": "red", "marker": "s", "size": 100}  # Full-cell rectangle
+    # if isinstance(agent, Radioactivity):
+    #     if agent.color == Color.GREEN:
+    #         return {"color": "green", "marker": "s", "size": 100}  # Full-cell rectangle
+    #     elif agent.color == Color.YELLOW:
+    #         return {"color": "yellow", "marker": "s", "size": 100}  # Full-cell rectangle
+    #     elif agent.color == Color.RED:
+    #         return {"color": "red", "marker": "s", "size": 100}  # Full-cell rectangle
     if isinstance(agent, Agent):
-        return {"color": "tab:red", "size": 10}  # Default portrayal
-    return {"color": "tab:blue", "size": 10}  # Default portrayal
+        return {"color": "tab:red", "size": 100}  # Default portrayal
+    return {"color": "tab:blue", "size": 0}  # Default portrayal
 
 # Create initial model instance
 model = RobotMission()
