@@ -21,6 +21,11 @@ class Color(Enum):
             Color.GREEN: "#2dbd3e", Color.YELLOW: "#dee038", Color.RED: "#e34d12"
         }[self]
 
+    def to_light_hex(self) -> str:
+        return {
+            Color.GREEN: "#e4fade", Color.YELLOW: "#f5f3c9", Color.RED: "#fadede"
+        }[self]
+
 
 
 class Direction(Enum):
