@@ -22,6 +22,14 @@ class Action(ABC):
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
 
 
+class Wait(Action):
+    def apply(self, model: "RobotMission", agent: "Agent") -> None:
+        pass
+
+    def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
+        return True
+
+
 class Move(Action):
     def __init__(self, direction: Direction) -> None:
         self.direction = direction

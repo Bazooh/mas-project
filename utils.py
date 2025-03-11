@@ -29,11 +29,11 @@ class Direction(Enum):
 
     def to_coords(self) -> Position:
         if self == Direction.UP:
-            return (0, 1)
+            return 0, 1
         elif self == Direction.DOWN:
-            return (0, -1)
+            return 0, -1
         elif self == Direction.RIGHT:
-            return (1, 0)
+            return 1, 0
         elif self == Direction.LEFT:
-            return (-1, 0)
+            return -1, 0
         raise ValueError("Invalid direction")
