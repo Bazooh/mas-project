@@ -4,18 +4,35 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
+from itertools import product
+import numpy as np
 import solara
+import mesa
 
 from matplotlib.axes import Axes
 from mesa.visualization import SolaraViz, make_space_component, make_plot_component
 
 from model import RobotMission
 from agent import Agent
-from objects import Radioactivity, Waste
+from objects import Dump, Radioactivity, Waste
 from utils import Color
 
 
 def post_process(ax: Axes) -> None:
+    grid = np.zeros((model.value.height, model.value.width, 3))
+    for x, y in product(range(model.value.width), range(model.value.height)):
+        cells = [cell for cell in model.value.grid.get_cell_list_contents([(x, y)]) if isinstance(cell, Radioactivity)]
+        assert len(cells) == 1, "Multiple or no radioactivity in the cell"
+
+        radioactivity = cells[0]
+        
+        if isinstance(radioactivity, Dump):
+            grid[y, x] = (0.8, 0.5, 0.5)
+        else:
+            grid[y, x] = radioactivity.color.to_light_rgb()
+
+    ax.imshow(grid, origin="lower", extent=(-0.5, model.value.width - 0.5, -0.5, model.value.height - 0.5), zorder=0)
+
     for agent in model.value.get_agents():
         for idx, waste in enumerate(agent.inventory):
             pos = agent.get_true_pos()
@@ -24,11 +41,7 @@ def post_process(ax: Axes) -> None:
             ax.scatter(*pos, color=waste.color.to_hex(), marker="*", s=50, zorder=3, edgecolors="black", linewidths=0.4)
 
 
-def agent_portrayal(agent):
-    if isinstance(agent, Radioactivity):
-        color = agent.color.to_light_hex()
-        return {"color": color, "marker": "s", "size": 1200, "zorder": 0, "edgecolors": "black", "linewidths": 0}
-
+def agent_portrayal(agent: mesa.Agent):
     if isinstance(agent, Waste):
         color = agent.color.to_hex()
         return {"edgecolors": "black", "color": color, "marker": "*", "size": 100, "zorder": 2, "linewidths": 0.4}
@@ -37,18 +50,13 @@ def agent_portrayal(agent):
         color = agent.color.to_hex()
         return {"color": color, "marker": "o", "size": 200, "zorder": 1, "edgecolors": "black", "linewidths": 0}
 
+    return {"edgecolors": "black", "color": "black", "marker": "s", "size": 0, "zorder": 0, "linewidths": 0}
 
-model = solara.reactive(RobotMission(n_green_agents=10, n_yellow_agents=10, n_red_agents=10))
+
+model = solara.reactive(RobotMission())
 
 MatplotlibGraph = make_plot_component({color.name: color.to_hex() for color in Color})
-SpaceGraph = make_space_component(
-    agent_portrayal,
-    propertylayer_portrayal={
-        "canvas_width": 200,  # Total width for 10 cells: 10 * 30px = 300px
-        "canvas_height": 20,  # Total height for 10 cells: 10 * 20px = 200px
-    },
-    post_process=post_process,
-)
+SpaceGraph = make_space_component(agent_portrayal, post_process=post_process)
 
 
 page = SolaraViz(

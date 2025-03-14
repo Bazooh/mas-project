@@ -49,3 +49,6 @@ class Waste(mesa.Agent):
         """
         super().__init__(model)
         self.color = color
+
+
+class Dump(Radioactivity): ...

@@ -59,11 +59,11 @@ class Pick(Action):
     def apply(self, model: "RobotMission", agent: "Agent") -> None:
         waste = model.get_waste_at(agent.get_true_pos())
 
-        agent.inventory.append(waste)
+        agent.inventory.add(waste)
         model.grid.remove_agent(waste)
 
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
-        if agent.is_inventory_full():
+        if agent.inventory.is_full():
             return False
 
         return model.is_any_waste_at(agent.get_true_pos())
@@ -75,7 +75,13 @@ class Drop(Action):
 
     def apply(self, model: "RobotMission", agent: "Agent") -> None:
         agent.inventory.remove(self.waste)
-        model.grid.place_agent(self.waste, agent.get_true_pos())
+        pos = agent.get_true_pos()
+
+        # Remove the waste
+        if self.waste.color == Color.RED and pos == model.dump_pos:
+            return
+
+        model.grid.place_agent(self.waste, pos)
 
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
         if self.waste not in agent.inventory:
@@ -94,7 +100,7 @@ class Merge(Action):
         agent.inventory.remove(self.waste2)
 
         new_waste = Waste(model, Color(self.waste1.color.value + 1))
-        agent.inventory.append(new_waste)
+        agent.inventory.add(new_waste)
 
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
         if self.waste1 not in agent.inventory or self.waste2 not in agent.inventory:

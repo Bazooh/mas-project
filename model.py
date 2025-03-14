@@ -17,7 +17,7 @@ from agents.naive import NaiveAgent as GreenAgent
 from agents.naive import NaiveAgent as YellowAgent
 from agents.naive import NaiveAgent as RedAgent
 
-from objects import Radioactivity, Waste
+from objects import Dump, Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
 
@@ -43,9 +43,9 @@ class RobotMission(mesa.Model):
         self,
         width: int = 10,
         height: int = 10,
-        n_green_agents: int = 1,
-        n_yellow_agents: int = 1,
-        n_red_agents: int = 1,
+        n_green_agents: int = 10,
+        n_yellow_agents: int = 10,
+        n_red_agents: int = 10,
         n_green_wastes: int = 10,
         n_yellow_wastes: int = 0,
         n_red_wastes: int = 0,
@@ -80,6 +80,7 @@ class RobotMission(mesa.Model):
         # yellow region is from green_yellow_border inclusive to yellow_red_border exclusive
         # red region is from yellow_red_border inclusive to width exclusive
 
+        self.dump_pos: Position
         self.place_radioactivity(green_yellow_border, yellow_red_border)
 
         wastes = {
@@ -97,6 +98,10 @@ class RobotMission(mesa.Model):
             }
         )
 
+        for agent in self.agents:
+            if isinstance(agent, Agent):
+                agent.init_perception(Perception.from_agent(self.grid, agent))
+
         self.datacollector = mesa.DataCollector(
             {color.name: lambda model, color=color: model_to_n_waste(model)[color] for color in Color}
         )
@@ -105,6 +110,11 @@ class RobotMission(mesa.Model):
     def place_radioactivity(self, green_yellow_border: int, yellow_red_border: int) -> None:
         for x in range(0, self.width):
             for y in range(0, self.height):
+                if x == self.width - 1 and y == (self.height - 1) // 2:
+                    self.grid.place_agent(Dump(self, Color.RED), (x, y))
+                    self.dump_pos = (x, y)
+                    continue
+
                 if x < green_yellow_border:
                     color = Color.GREEN
                 elif x < yellow_red_border:
@@ -162,9 +172,7 @@ class RobotMission(mesa.Model):
             for agent_idx in range(self.n_agent[color]):
                 pos = self.get_random_pos_with_color(color, no_agent=True)
 
-                self.grid.place_agent(
-                    AgentInstantiator(self, color, Perception.from_pos(self.grid, pos), **params[color]), pos
-                )
+                self.grid.place_agent(AgentInstantiator(self, color, **params[color]), pos)
 
     def step(self) -> None:
         agents = list(self.agents)
@@ -176,4 +184,4 @@ class RobotMission(mesa.Model):
     def do(self, action: Action, agent: Agent) -> Perception:
         if action.can_apply(self, agent):
             action.apply(self, agent)
-        return Perception.from_pos(self.grid, agent.get_true_pos())
+        return Perception.from_agent(self.grid, agent)

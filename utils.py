@@ -24,6 +24,14 @@ class Color(IntEnum):
     def to_light_hex(self) -> str:
         return {Color.GREEN: "#e4fade", Color.YELLOW: "#f5f3c9", Color.RED: "#fadede"}[self]
 
+    def to_rgb(self) -> tuple[float, float, float]:
+        hex = self.to_hex()
+        return int(hex[1:3], 16) / 255, int(hex[3:5], 16) / 255, int(hex[5:7], 16) / 255
+
+    def to_light_rgb(self) -> tuple[float, float, float]:
+        hex = self.to_light_hex()
+        return int(hex[1:3], 16) / 255, int(hex[3:5], 16) / 255, int(hex[5:7], 16) / 255
+
 
 class Direction(IntEnum):
     NONE = 0
