@@ -7,8 +7,10 @@ Date: 11/03/2025
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from perception import Perception
+if TYPE_CHECKING:
+    from perception import Perception
 
 
 class Knowledge(ABC):

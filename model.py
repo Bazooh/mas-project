@@ -11,7 +11,12 @@ import mesa
 import random
 
 from action import Action
-from agent import Agent, GreenAgent, YellowAgent, RedAgent
+from agent import Agent
+
+from agents.naive import NaiveAgent as GreenAgent
+from agents.naive import NaiveAgent as YellowAgent
+from agents.naive import NaiveAgent as RedAgent
+
 from objects import Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
@@ -41,6 +46,9 @@ class RobotMission(mesa.Model):
         n_green_agents: int = 1,
         n_yellow_agents: int = 1,
         n_red_agents: int = 1,
+        n_green_wastes: int = 10,
+        n_yellow_wastes: int = 0,
+        n_red_wastes: int = 0,
         radioactivity_proportions: list[float] = [1 / 3, 1 / 3, 1 / 3],
         seed: int | None = None,
     ):
@@ -75,9 +83,9 @@ class RobotMission(mesa.Model):
         self.place_radioactivity(green_yellow_border, yellow_red_border)
 
         wastes = {
-            Color.GREEN: 10,
-            Color.YELLOW: 0,
-            Color.RED: 0,
+            Color.GREEN: n_green_wastes,
+            Color.YELLOW: n_yellow_wastes,
+            Color.RED: n_red_wastes,
         }
         self.place_waste(wastes)
 
@@ -154,7 +162,9 @@ class RobotMission(mesa.Model):
             for agent_idx in range(self.n_agent[color]):
                 pos = self.get_random_pos_with_color(color, no_agent=True)
 
-                self.grid.place_agent(AgentInstantiator(self, color, Perception(pos), **params[color]), pos)
+                self.grid.place_agent(
+                    AgentInstantiator(self, color, Perception.from_pos(self.grid, pos), **params[color]), pos
+                )
 
     def step(self) -> None:
         agents = list(self.agents)
@@ -166,4 +176,4 @@ class RobotMission(mesa.Model):
     def do(self, action: Action, agent: Agent) -> Perception:
         if action.can_apply(self, agent):
             action.apply(self, agent)
-        return Perception(agent.get_true_pos())
+        return Perception.from_pos(self.grid, agent.get_true_pos())

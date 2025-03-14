@@ -4,6 +4,8 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
+from __future__ import annotations
+
 from enum import IntEnum
 import random
 
@@ -24,14 +26,15 @@ class Color(IntEnum):
 
 
 class Direction(IntEnum):
+    NONE = 0
     UP = 1
     DOWN = 2
     RIGHT = 3
     LEFT = 4
 
     @staticmethod
-    def random() -> "Direction":
-        return random.choice(list(Direction))
+    def random(exclude: set[Direction] = set()) -> Direction:
+        return random.choice(list(set(Direction.not_none()) - exclude))
 
     def to_coords(self) -> Position:
         if self == Direction.UP:
@@ -43,3 +46,19 @@ class Direction(IntEnum):
         elif self == Direction.LEFT:
             return -1, 0
         raise ValueError("Invalid direction")
+
+    @staticmethod
+    def get_direction(pos1: Position, pos2: Position) -> Direction:
+        if pos1[0] < pos2[0]:
+            return Direction.RIGHT
+        if pos1[0] > pos2[0]:
+            return Direction.LEFT
+        if pos1[1] < pos2[1]:
+            return Direction.UP
+        if pos1[1] > pos2[1]:
+            return Direction.DOWN
+        return Direction.NONE
+
+    @staticmethod
+    def not_none() -> list[Direction]:
+        return [direction for direction in Direction if direction != Direction.NONE]
