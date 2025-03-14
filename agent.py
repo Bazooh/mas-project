@@ -9,8 +9,8 @@ import mesa
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Iterator, cast
 
-from knowledge import PositionKnowledge
 from action import Action, Move
+from knowledge import ChickenKnowledge
 from objects import Waste
 from utils import Color, Direction, Position
 
@@ -26,6 +26,9 @@ class Inventory:
 
     def is_full(self) -> bool:
         return len(self.wastes) >= self.capacity
+
+    def is_empty(self) -> bool:
+        return len(self.wastes) == 0
 
     def add(self, waste: Waste) -> None:
         self.wastes.append(waste)
@@ -52,7 +55,7 @@ class Agent(mesa.Agent, ABC):
             model: A model instance
         """
         super().__init__(model)
-        self.knowledge = PositionKnowledge()
+        self.knowledge = ChickenKnowledge()
         self.perception: Perception
         self.color = color
         self.inventory = Inventory(inventory_capacity)

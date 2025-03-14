@@ -6,11 +6,14 @@ Date: 11/03/2025
 
 from __future__ import annotations
 
-from mesa.space import MultiGrid
+from typing import TYPE_CHECKING
 
 from objects import Radioactivity, Waste
-from utils import Color, Direction
+from utils import Color, Direction, Position
 from agent import Agent, Inventory
+
+if TYPE_CHECKING:
+    from model import RobotMission
 
 
 class CasePerception:
@@ -21,22 +24,25 @@ class CasePerception:
 
 
 class Perception:
-    def __init__(self, cases: dict[Direction, CasePerception], inventory: Inventory, color: Color) -> None:
+    def __init__(
+        self, cases: dict[Direction, CasePerception], inventory: Inventory, color: Color, dump_pos: Position
+    ) -> None:
         self._cases = cases
         self.inventory = inventory
         self.color = color
+        self.dump_pos = dump_pos
 
     @staticmethod
-    def from_agent(grid: MultiGrid, agent: Agent):
+    def from_agent(model: RobotMission, agent: Agent) -> Perception:
         cases = {}
         pos = agent.get_true_pos()
 
-        for coords in grid.get_neighborhood(pos, moore=False, include_center=True):
+        for coords in model.grid.get_neighborhood(pos, moore=False, include_center=True):
             _waste = None
             _agent = None
             _color = None
 
-            for cell in grid.get_cell_list_contents([coords]):
+            for cell in model.grid.get_cell_list_contents([coords]):
                 if isinstance(cell, Waste):
                     assert _waste is None, "Multiple waste in the same cell"
                     _waste = cell
@@ -51,7 +57,7 @@ class Perception:
 
             cases[Direction.get_direction(pos, coords)] = CasePerception(_color, _waste, _agent)
 
-        return Perception(cases, agent.inventory, agent.color)
+        return Perception(cases, agent.inventory, agent.color, model.dump_pos)
 
     def __getitem__(self, key: Direction) -> CasePerception:
         return self._cases[key]

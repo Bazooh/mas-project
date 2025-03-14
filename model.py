@@ -15,7 +15,7 @@ from agent import Agent
 
 from agents.naive import NaiveAgent as GreenAgent
 from agents.naive import NaiveAgent as YellowAgent
-from agents.naive import NaiveAgent as RedAgent
+from agents.naive import RedNaiveAgent as RedAgent
 
 from objects import Dump, Radioactivity, Waste
 from perception import Perception
@@ -100,7 +100,7 @@ class RobotMission(mesa.Model):
 
         for agent in self.agents:
             if isinstance(agent, Agent):
-                agent.init_perception(Perception.from_agent(self.grid, agent))
+                agent.init_perception(Perception.from_agent(self, agent))
 
         self.datacollector = mesa.DataCollector(
             {color.name: lambda model, color=color: model_to_n_waste(model)[color] for color in Color}
@@ -184,4 +184,4 @@ class RobotMission(mesa.Model):
     def do(self, action: Action, agent: Agent) -> Perception:
         if action.can_apply(self, agent):
             action.apply(self, agent)
-        return Perception.from_agent(self.grid, agent)
+        return Perception.from_agent(self, agent)

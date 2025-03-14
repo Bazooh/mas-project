@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from action import Merge, Move, Pick, Drop
 from objects import Waste
-from utils import Color, Direction
+from utils import Color, Direction, Position
 
 if TYPE_CHECKING:
     from agent import Inventory
@@ -21,9 +21,6 @@ if TYPE_CHECKING:
 class Knowledge(ABC):
     @abstractmethod
     def update(self, perception: Perception) -> None: ...
-
-    @abstractmethod
-    def copy(self) -> Knowledge: ...
 
     def try_merge(self) -> Merge | None:
         return None
@@ -39,6 +36,13 @@ class Knowledge(ABC):
 
     def __add__(self, other: Knowledge) -> Knowledge:
         return MultipleKnowledges(self, other)
+
+
+class ChickenKnowledge(Knowledge):
+    """Not very knowledgeable, just a chicken."""
+
+    def update(self, perception: Perception) -> None:
+        pass
 
 
 class MultipleKnowledges(Knowledge):
@@ -74,39 +78,28 @@ class MultipleKnowledges(Knowledge):
             return drop
         return self.knowledge2.try_drop(waste)
 
-    def copy(self) -> MultipleKnowledges:
-        return MultipleKnowledges(self.knowledge1.copy(), self.knowledge2.copy())
-
 
 class History(Knowledge):
-    def __init__(self, knowledge: Knowledge) -> None:
-        self.knowledge = knowledge
+    def __init__(self, knowledge_type: type[Knowledge]) -> None:
+        self.knowledge_type = knowledge_type
         self.history: list[Knowledge] = []
 
     def update(self, perception: Perception) -> None:
-        new_knowledge = self.knowledge.copy()
+        new_knowledge = self.knowledge_type()
         new_knowledge.update(perception)
         self.history.append(new_knowledge)
 
-    def copy(self) -> History:
-        history = History(self.knowledge.copy())
-        for knowledge in self.history:
-            history.history.append(knowledge.copy())
-        return history
+    def try_merge(self) -> Merge | None:
+        return self.history[-1].try_merge()
 
+    def try_move(self, direction: Direction) -> Move | None:
+        return self.history[-1].try_move(direction)
 
-class PositionKnowledge(Knowledge):
-    def __init__(self) -> None:
-        self.x: int
-        self.y: int
+    def try_pick(self) -> Pick | None:
+        return self.history[-1].try_pick()
 
-    def update(self, perception: Perception) -> None: ...
-
-    def copy(self) -> PositionKnowledge:
-        new_pos = PositionKnowledge()
-        new_pos.x = self.x
-        new_pos.y = self.y
-        return new_pos
+    def try_drop(self, waste: Waste) -> Drop | None:
+        return self.history[-1].try_drop(waste)
 
 
 class AllKnowledge(Knowledge):
@@ -114,11 +107,19 @@ class AllKnowledge(Knowledge):
         self.perception: Perception
         self.inventory: Inventory
         self.color: Color
+        self.dump_pos: Position
 
     def update(self, perception: Perception) -> None:
         self.perception = perception
         self.inventory = perception.inventory
         self.color = perception.color
+        self.dump_pos = perception.dump_pos
+
+    @property
+    def pos(self) -> Position:
+        me = self.perception[Direction.NONE].agent
+        assert me is not None, "Trying to get the position of an agent that is not placed"
+        return me.get_true_pos()
 
     def try_merge(self) -> Merge | None:
         mergeable_waste = [waste for waste in self.inventory if waste.color == self.color]
@@ -158,8 +159,3 @@ class AllKnowledge(Knowledge):
             return None
 
         return Pick()
-
-    def copy(self) -> AllKnowledge:
-        new_knowledge = AllKnowledge()
-        new_knowledge.perception = self.perception
-        return new_knowledge
