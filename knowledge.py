@@ -6,6 +6,8 @@ Date: 11/03/2025
 
 from __future__ import annotations
 
+import torch
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -21,6 +23,9 @@ if TYPE_CHECKING:
 class Knowledge(ABC):
     @abstractmethod
     def update(self, perception: Perception) -> None: ...
+
+    @abstractmethod
+    def to_tensor(self) -> torch.Tensor: ...
 
     def try_merge(self) -> Merge | None:
         return None
@@ -43,6 +48,9 @@ class ChickenKnowledge(Knowledge):
 
     def update(self, perception: Perception) -> None:
         pass
+
+    def to_tensor(self) -> torch.Tensor:
+        return torch.empty()
 
 
 class MultipleKnowledges(Knowledge):
@@ -78,6 +86,9 @@ class MultipleKnowledges(Knowledge):
             return drop
         return self.knowledge2.try_drop(waste)
 
+    def to_tensor(self) -> torch.Tensor:
+        return torch.cat((self.knowledge1.to_tensor(), self.knowledge2.to_tensor()))
+
 
 class History(Knowledge):
     def __init__(self, knowledge_type: type[Knowledge]) -> None:
@@ -100,6 +111,9 @@ class History(Knowledge):
 
     def try_drop(self, waste: Waste) -> Drop | None:
         return self.history[-1].try_drop(waste)
+
+    def to_tensor(self) -> torch.Tensor:
+        return self.history[-1].to_tensor()
 
 
 class AllKnowledge(Knowledge):
@@ -159,3 +173,39 @@ class AllKnowledge(Knowledge):
             return None
 
         return Pick()
+
+    def to_tensor(self) -> torch.Tensor:
+        """
+        Returns a tensor of shape (24,) with the following values :
+        - Number of wastes of my color in my inventory
+        - Number of wastes of the next color in my inventory
+        - Is there a waste on me
+        - Is there a waste of my color on me
+
+        for each direction:
+            - Can I move in this direction (does not take into account if there is an agent in this direction)
+            - Is there a waste in this direction
+            - Is there a waste of my color in this direction
+            - Is there an agent in this direction
+            - Is there an agent of my color in this direction
+        """
+        tensor = torch.zeros(24)
+        for waste in self.inventory:
+            tensor[waste.color - self.color] += 1
+
+        waste = self.perception[Direction.NONE].waste
+        tensor[2] = waste is not None
+        tensor[3] = waste is not None and waste.color == self.color
+
+        for i, direction in enumerate(Direction.not_none()):
+            if direction not in self.perception:
+                continue
+
+            case = self.perception[direction]
+            tensor[i * 5 + 4] = case.color <= self.color
+            tensor[i * 5 + 5] = case.waste is not None
+            tensor[i * 5 + 6] = case.waste is not None and case.waste.color == self.color
+            tensor[i * 5 + 7] = case.agent is not None
+            tensor[i * 5 + 8] = case.agent is not None and case.agent.color == self.color
+
+        return tensor
