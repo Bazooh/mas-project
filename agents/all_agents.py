@@ -1,6 +1,7 @@
 from agent import Agent
 from agents.RL import RLAgent
 from agents.naive import NaiveAgent, RedNaiveAgent
+from agents.ruleBased import GreenRuleBasedAgent, YellowRuleBasedAgent, RedRuleBasedAgent
 from utils import Color
 
 
@@ -13,6 +14,11 @@ str_to_agent: dict[str, type[Agent] | dict[Color, type[Agent]]] = {
         Color.RED: RedNaiveAgent,
     },
     "DQN": RLAgent,
+    "RuleBased": {
+        Color.GREEN: GreenRuleBasedAgent,
+        Color.YELLOW: YellowRuleBasedAgent,
+        Color.RED: RedRuleBasedAgent,
+    },
 }
 
 
