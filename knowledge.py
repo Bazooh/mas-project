@@ -117,6 +117,9 @@ class History(Knowledge, Generic[T]):
 
     def to_tensor(self) -> torch.Tensor:
         return self.history[-1].to_tensor()
+    
+    def get_last(self) -> Knowledge:
+        return self.history[-1]
 
 
 class AllKnowledge(Knowledge):

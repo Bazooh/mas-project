@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from action import Action, Drop, Move
 from agent import Agent
-from knowledge import AllKnowledge
+from knowledge import AllKnowledge ,History
 from utils import Color, Direction
 
 if TYPE_CHECKING:
