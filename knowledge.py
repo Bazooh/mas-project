@@ -175,6 +175,15 @@ class AllKnowledge(Knowledge):
             return None
 
         return Pick()
+    
+    def look_around(self) -> Move | None:
+        for direction in self.perception:
+            if direction == Direction.NONE:
+                continue
+            waste = self.perception[direction].waste
+            if waste is not None and waste.color == self.color:
+                return Move(direction)
+        return None
 
     def to_tensor(self) -> torch.Tensor:
         """

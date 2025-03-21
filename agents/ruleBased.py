@@ -46,10 +46,6 @@ class NaiveAgent(Agent):
         pick = self.knowledge.try_pick()
         if pick is not None:
             return pick
-        
-        move = self.knowledge.look_around()
-        if move is not None:
-            return move
 
         return Move(Direction.random())
 
@@ -68,10 +64,6 @@ class RedNaiveAgent(Agent):
         pick = self.knowledge.try_pick()
         if pick is not None:
             return pick
-        
-        move = self.knowledge.look_around()
-        if move is not None:
-            return move
 
         if not self.inventory.is_empty():
             if self.knowledge.pos == self.knowledge.dump_pos:

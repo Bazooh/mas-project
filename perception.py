@@ -61,6 +61,9 @@ class Perception:
 
     def __getitem__(self, key: Direction) -> CasePerception:
         return self._cases[key]
+    
+    def __iter__(self):
+        return iter(self._cases)
 
     def __contains__(self, key: Direction) -> bool:
         return key in self._cases
