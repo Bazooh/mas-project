@@ -19,6 +19,55 @@ class GreenRuleBasedAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
+        self.patrol_horizontal_direction = Direction.RIGHT
+        self.patrol_vertical_direction = Direction.DOWN
+
+    def next_patrol_direction(self) :
+        """
+        The cycle is :
+        ...
+        >-----|
+              v
+        |--<--|
+        |
+        |->---|
+              |
+        --<---|
+        ...
+        and then when we hit bottom :
+        ...
+        |--<--|
+              ^
+        |->---|
+        |
+        |--<--|        ...
+        """
+        if self.patrol_horizontal_direction == Direction.RIGHT:
+            # we check if right cell is yellow, if so we go patrol_vertical_direction (and maybe change it) and next one will be left
+            if Direction.RIGHT in self.knowledge.perception and self.knowledge.perception[Direction.RIGHT].color == Color.YELLOW:
+                self.patrol_horizontal_direction = Direction.LEFT
+                # possible to follow patrol_vertical_direction ?
+                if self.patrol_vertical_direction in self.knowledge.perception:
+                    return self.knowledge.try_move(self.patrol_vertical_direction)
+                else:
+                    self.patrol_vertical_direction = Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
+                    return self.knowledge.try_move(self.patrol_vertical_direction)
+                
+            else :# we can go right
+                return self.knowledge.try_move(Direction.RIGHT)
+
+        elif self.patrol_horizontal_direction == Direction.LEFT:
+            # we check if left cell is wall, if so we go patrol_vertical_direction (and maybe change it) and next one will be right
+            if Direction.LEFT not in self.knowledge.perception:
+                self.patrol_horizontal_direction = Direction.RIGHT
+                # possible to follow patrol_vertical_direction ?
+                if self.patrol_vertical_direction in self.knowledge.perception:
+                    return self.knowledge.try_move(self.patrol_vertical_direction)
+                else:
+                    self.patrol_vertical_direction = Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
+                    return self.knowledge.try_move(self.patrol_vertical_direction)
+            else :# we can go left
+                return self.knowledge.try_move(Direction.LEFT)
 
     def deliberate(self) -> Action:
         """
@@ -27,10 +76,13 @@ class GreenRuleBasedAgent(Agent):
         Drop waste if possible,
         Finally move randomly.
         """
+
+        # We try to merge
         merge = self.knowledge.try_merge()
         if merge is not None:
             return merge
 
+        # If we have green waste, we go put it at the green-yellow frontier
         for waste in self.inventory:
             if waste.color > self.color:
                 move = self.knowledge.try_move(Direction.RIGHT)
@@ -43,11 +95,18 @@ class GreenRuleBasedAgent(Agent):
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
 
+        # If we can pick a waste, we do it
         pick = self.knowledge.try_pick()
         if pick is not None:
             return pick
         
+        # If there is a waste in an adjacent cell, we move to that cell
         move = self.knowledge.look_around()
+        if move is not None:
+            return move
+        
+        # We follow the patrol cycle
+        move = self.next_patrol_direction()
         if move is not None:
             return move
 
