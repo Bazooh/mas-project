@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 
 class NaiveAgent(Agent):
-    def __init__(self, model: "RobotMission", color: Color, inventory_capacity: int) -> None:
-        super().__init__(model, color, inventory_capacity)
+    def __init__(self, model: "RobotMission", color: Color) -> None:
+        super().__init__(model, color)
         self.knowledge = AllKnowledge()
 
     def deliberate(self) -> Action:
@@ -41,7 +41,7 @@ class NaiveAgent(Agent):
                 if drop is not None:
                     return drop
 
-                return Move(Direction.random(exclude={Direction.RIGHT}))
+                return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
 
         pick = self.knowledge.try_pick()
         if pick is not None:
@@ -51,8 +51,8 @@ class NaiveAgent(Agent):
 
 
 class RedNaiveAgent(Agent):
-    def __init__(self, model: "RobotMission", color: Color, inventory_capacity: int) -> None:
-        super().__init__(model, color, inventory_capacity)
+    def __init__(self, model: "RobotMission", color: Color) -> None:
+        super().__init__(model, color)
         self.knowledge = AllKnowledge()
 
     def deliberate(self) -> Action:

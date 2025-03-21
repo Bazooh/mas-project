@@ -65,10 +65,10 @@ class Pick(Action):
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
         if agent.inventory.is_full():
             return False
-        
+
         if not model.is_any_waste_at(agent.get_true_pos()):
             return False
-        
+
         waste = model.get_waste_at(agent.get_true_pos())
         return waste.color == agent.color
 
@@ -81,11 +81,11 @@ class Drop(Action):
         agent.inventory.remove(self.waste)
         pos = agent.get_true_pos()
 
-        # Remove the waste
+        # Dump the waste
         if self.waste.color == Color.RED and pos == model.dump_pos:
-            return
-
-        model.grid.place_agent(self.waste, pos)
+            model.dumped_wastes.append(self.waste)
+        else:
+            model.grid.place_agent(self.waste, pos)
 
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool:
         if self.waste not in agent.inventory:

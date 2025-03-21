@@ -18,14 +18,14 @@ from objects import Dump, Radioactivity, Waste
 from utils import Color
 
 
-def post_process(ax: Axes) -> None:
+def post_process(model: solara.Reactive[RobotMission], ax: Axes) -> None:
     grid = np.zeros((model.value.height, model.value.width, 3))
     for x, y in product(range(model.value.width), range(model.value.height)):
         cells = [cell for cell in model.value.grid.get_cell_list_contents([(x, y)]) if isinstance(cell, Radioactivity)]
         assert len(cells) == 1, "Multiple or no radioactivity in the cell"
 
         radioactivity = cells[0]
-        
+
         if isinstance(radioactivity, Dump):
             grid[y, x] = (0.8, 0.5, 0.5)
         else:
@@ -53,60 +53,76 @@ def agent_portrayal(agent: mesa.Agent):
     return {"edgecolors": "black", "color": "black", "marker": "s", "size": 0, "zorder": 0, "linewidths": 0}
 
 
-model = solara.reactive(RobotMission())
+def make_graphs(model: solara.Reactive[RobotMission]):
+    MatplotlibGraph = make_plot_component({color.name: color.to_hex() for color in Color})
+    SpaceGraph = make_space_component(agent_portrayal, post_process=lambda ax: post_process(model, ax))
 
-MatplotlibGraph = make_plot_component({color.name: color.to_hex() for color in Color})
-SpaceGraph = make_space_component(agent_portrayal, post_process=post_process)
+    return [SpaceGraph, MatplotlibGraph]
 
 
-page = SolaraViz(
-    model,  # type: ignore
-    components=[SpaceGraph, MatplotlibGraph],  # type: ignore
-    name="Minimal Grid Display",
-    model_params={
-        "width": 10,
-        "height": 10,
-        "n_green_agents": {
-            "type": "SliderInt",
-            "value": 10,
-            "min": 0,
-            "max": 30,
-            "label": "Number of Green agents",
+@solara.core.component
+def Save(test):
+    solara.Button("Save", on_click=lambda: model.value.save("simulation.json"))
+
+
+if __name__ == "__main__":
+    agent_params = {
+        Color.GREEN: {"network_path": "networks/final.pth"},
+        Color.YELLOW: {"network_path": "networks/final.pth"},
+        Color.RED: {},
+    }
+
+    model = solara.reactive(RobotMission(agent_params=agent_params))
+
+    page = SolaraViz(
+        model,  # type: ignore
+        components=make_graphs(model) + [Save],
+        name="Minimal Grid Display",
+        model_params={
+            "width": 10,
+            "height": 10,
+            "n_green_agents": {
+                "type": "SliderInt",
+                "value": 10,
+                "min": 0,
+                "max": 30,
+                "label": "Number of Green agents",
+            },
+            "n_yellow_agents": {
+                "type": "SliderInt",
+                "value": 10,
+                "min": 0,
+                "max": 30,
+                "label": "Number of Yellow agents",
+            },
+            "n_red_agents": {
+                "type": "SliderInt",
+                "value": 10,
+                "min": 0,
+                "max": 40,
+                "label": "Number of Red agents",
+            },
+            "n_red_wastes": {
+                "type": "SliderInt",
+                "value": 0,
+                "min": 0,
+                "max": 40,
+                "label": "Number of Red waste",
+            },
+            "n_yellow_wastes": {
+                "type": "SliderInt",
+                "value": 0,
+                "min": 0,
+                "max": 30,
+                "label": "Number of Yellow waste",
+            },
+            "n_green_wastes": {
+                "type": "SliderInt",
+                "value": 10,
+                "min": 0,
+                "max": 30,
+                "label": "Number of Green waste",
+            },
+            "agent_params": agent_params,
         },
-        "n_yellow_agents": {
-            "type": "SliderInt",
-            "value": 10,
-            "min": 0,
-            "max": 30,
-            "label": "Number of Yellow agents",
-        },
-        "n_red_agents": {
-            "type": "SliderInt",
-            "value": 10,
-            "min": 0,
-            "max": 40,
-            "label": "Number of Red agents",
-        },
-        "n_red_wastes": {
-            "type": "SliderInt",
-            "value": 0,
-            "min": 0,
-            "max": 40,
-            "label": "Number of Red waste",
-        },
-        "n_yellow_wastes": {
-            "type": "SliderInt",
-            "value": 0,
-            "min": 0,
-            "max": 30,
-            "label": "Number of Yellow waste",
-        },
-        "n_green_wastes": {
-            "type": "SliderInt",
-            "value": 10,
-            "min": 0,
-            "max": 30,
-            "label": "Number of Green waste",
-        },
-    },
-)
+    )

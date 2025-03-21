@@ -122,12 +122,14 @@ class AllKnowledge(Knowledge):
         self.inventory: Inventory
         self.color: Color
         self.dump_pos: Position
+        self.step = 0
 
     def update(self, perception: Perception) -> None:
         self.perception = perception
         self.inventory = perception.inventory
         self.color = perception.color
         self.dump_pos = perception.dump_pos
+        self.step += 1
 
     @property
     def pos(self) -> Position:
@@ -176,7 +178,8 @@ class AllKnowledge(Knowledge):
 
     def to_tensor(self) -> torch.Tensor:
         """
-        Returns a tensor of shape (24,) with the following values :
+        Returns a tensor of shape (25,) with the following values :
+        - Step / 100
         - Number of wastes of my color in my inventory
         - Number of wastes of the next color in my inventory
         - Is there a waste on me

@@ -6,20 +6,27 @@ Date: 11/03/2025
 
 from __future__ import annotations
 
-from typing import Iterator, cast
+import json
+from typing import Any, Iterator, cast
 import mesa
 import random
+
+import torch
 
 from action import Action
 from agent import Agent
 
-from agents.naive import NaiveAgent as GreenAgent
-from agents.naive import NaiveAgent as YellowAgent
+from agents.RL import RLAgent
+from agents.RL import RLAgent as GreenAgent
+from agents.RL import RLAgent as YellowAgent
 from agents.naive import RedNaiveAgent as RedAgent
 
 from objects import Dump, Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
+
+
+default_agents_params: dict[Color, dict[str, Any]] = {Color.GREEN: {}, Color.YELLOW: {}, Color.RED: {}}
 
 
 def model_to_n_waste(model: RobotMission) -> dict[Color, int]:
@@ -43,14 +50,15 @@ class RobotMission(mesa.Model):
         self,
         width: int = 10,
         height: int = 10,
-        n_green_agents: int = 10,
-        n_yellow_agents: int = 10,
-        n_red_agents: int = 10,
+        n_green_agents: int = 2,
+        n_yellow_agents: int = 1,
+        n_red_agents: int = 1,
         n_green_wastes: int = 10,
         n_yellow_wastes: int = 0,
         n_red_wastes: int = 0,
         radioactivity_proportions: list[float] = [1 / 3, 1 / 3, 1 / 3],
         seed: int | None = None,
+        agent_params: dict[Color, dict[str, Any]] = default_agents_params,
     ):
         """Initialize a RobotMission instance.
 
@@ -65,7 +73,7 @@ class RobotMission(mesa.Model):
         random.seed(seed)
         self.width = width
         self.height = height
-        self.n_agent = {
+        self.n_agents_by_color = {
             Color.GREEN: n_green_agents,
             Color.YELLOW: n_yellow_agents,
             Color.RED: n_red_agents,
@@ -73,6 +81,7 @@ class RobotMission(mesa.Model):
         self.radioactivity_proportions = radioactivity_proportions
 
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
+        self.step_idx = 0
 
         green_yellow_border = int(self.width * self.radioactivity_proportions[0])
         yellow_red_border = int(self.width * (self.radioactivity_proportions[0] + self.radioactivity_proportions[1]))
@@ -83,6 +92,8 @@ class RobotMission(mesa.Model):
         self.dump_pos: Position
         self.place_radioactivity(green_yellow_border, yellow_red_border)
 
+        self.dumped_wastes: list[Waste] = []
+
         wastes = {
             Color.GREEN: n_green_wastes,
             Color.YELLOW: n_yellow_wastes,
@@ -90,22 +101,53 @@ class RobotMission(mesa.Model):
         }
         self.place_waste(wastes)
 
-        self.place_agents(
-            {
-                Color.GREEN: {"inventory_capacity": 2},
-                Color.YELLOW: {"inventory_capacity": 2},
-                Color.RED: {"inventory_capacity": 1},
-            }
-        )
+        self.place_agents(agent_params)
 
-        for agent in self.agents:
-            if isinstance(agent, Agent):
-                agent.init_perception(Perception.from_agent(self, agent))
+        for agent in self.get_agents():
+            agent.init_perception(Perception.from_agent(self, agent))
 
         self.datacollector = mesa.DataCollector(
             {color.name: lambda model, color=color: model_to_n_waste(model)[color] for color in Color}
         )
         self.datacollector.collect(self)
+
+        self.history = []
+
+    @property
+    def n_agents(self) -> int:
+        return sum(self.n_agents_by_color.values())
+
+    def get_n_wastes(self, color: Color) -> int:
+        s = 0
+        for waste in [cell for cell in self.agents if isinstance(cell, Waste)]:
+            s += 1 if waste.color == color else 0
+        for agent in self.get_agents():
+            for waste in agent.inventory:
+                s += 1 if waste.color == color else 0
+        return s
+
+    def serialize(self):
+        """Serialize the model state. (Used for replay)"""
+        return {
+            "step": len(self.history),
+            "agents": [
+                {
+                    "id": agent.unique_id,
+                    "x": agent.pos[0],  # type: ignore
+                    "y": agent.pos[1],  # type: ignore
+                    "inventory": [waste.color for waste in agent.inventory],
+                }
+                for agent in self.get_agents()
+            ],
+            "wastes": [
+                {"x": waste.pos[0], "y": waste.pos[1], "color": waste.color}  # type: ignore
+                for waste in self.grid.agents
+                if isinstance(waste, Waste)
+            ],
+        }
+
+    def is_done(self) -> bool:
+        return sum(self.get_n_wastes(color) for color in Color) == 0
 
     def place_radioactivity(self, green_yellow_border: int, yellow_red_border: int) -> None:
         for x in range(0, self.width):
@@ -167,21 +209,63 @@ class RobotMission(mesa.Model):
     def get_agents(self) -> list[Agent]:
         return [cell for cell in self.grid.agents if isinstance(cell, Agent)]
 
-    def place_agents(self, params: dict[Color, dict[str, int]]) -> None:
+    def place_agents(self, params: dict[Color, dict[str, Any]]) -> None:
         for color, AgentInstantiator in zip(params, [GreenAgent, YellowAgent, RedAgent]):
-            for agent_idx in range(self.n_agent[color]):
+            for agent_idx in range(self.n_agents_by_color[color]):
                 pos = self.get_random_pos_with_color(color, no_agent=True)
 
                 self.grid.place_agent(AgentInstantiator(self, color, **params[color]), pos)
 
     def step(self) -> None:
-        agents = list(self.agents)
+        agents = self.get_agents()
         random.shuffle(agents)
         for agent in agents:
             agent.step()
         self.datacollector.collect(self)
+        self.history.append(self.serialize())
+        self.step_idx += 1
 
     def do(self, action: Action, agent: Agent) -> Perception:
         if action.can_apply(self, agent):
             action.apply(self, agent)
         return Perception.from_agent(self, agent)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "width": self.width,
+            "height": self.height,
+            "agents_color": [{"id": agent.unique_id, "color": agent.color} for agent in self.get_agents()],
+            "steps": self.history,
+        }
+
+    def save(self, path: str = "simulation.json") -> None:
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=4)
+
+    def to_tensor(self) -> torch.Tensor:
+        """
+        - 3 dimensions for the colors of the wastes
+        - 1 dimension for the non-RL agents
+        - 2 dimensions for the inventory of the non-RL agents
+        - for each RL agent:
+            - 1 dimension for the agent itself
+            - 2 dimensions for the inventory
+        """
+        rl_agents = [agent for agent in self.get_agents() if isinstance(agent, RLAgent)]
+
+        out = torch.zeros((len(Color) + 3 * (len(rl_agents) + 1), self.width, self.height))
+
+        for cell in self.grid.agents:
+            x, y = cast(Position, cell.pos)
+
+            if isinstance(cell, Waste):
+                out[cell.color - 1, x, y] = 1
+
+            elif isinstance(cell, Agent):
+                offset = len(Color) * ((cell.training_id + 2) if isinstance(cell, RLAgent) else 1)
+
+                out[offset, x, y] = 1
+                for waste in cell.inventory:
+                    out[offset + (1 if waste.color == cell.color else 2), x, y] += 1
+
+        return out

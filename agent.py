@@ -30,11 +30,19 @@ class Inventory:
     def is_empty(self) -> bool:
         return len(self.wastes) == 0
 
+    def get_highest_waste(self) -> Waste | None:
+        if self.is_empty():
+            return None
+        return max(self.wastes, key=lambda waste: waste.color)
+
     def add(self, waste: Waste) -> None:
         self.wastes.append(waste)
 
     def remove(self, waste: Waste) -> None:
         self.wastes.remove(waste)
+
+    def clear(self) -> None:
+        self.wastes.clear()
 
     def __contains__(self, waste: Waste) -> bool:
         return waste in self.wastes
@@ -42,24 +50,20 @@ class Inventory:
     def __iter__(self) -> Iterator[Waste]:
         return iter(self.wastes)
 
+    def __len__(self) -> int:
+        return len(self.wastes)
+
 
 class Agent(mesa.Agent, ABC):
-    """An agent with fixed initial wealth."""
-
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", color: Color, inventory_capacity: int) -> None:
-        """initialize a MoneyAgent instance.
-
-        Args:
-            model: A model instance
-        """
+    def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model)
         self.knowledge = ChickenKnowledge()
         self.perception: Perception
         self.color = color
-        self.inventory = Inventory(inventory_capacity)
-        self.inventory_capacity = inventory_capacity
+        self.inventory_capacity = 1 if color == Color.RED else 2
+        self.inventory = Inventory(self.inventory_capacity)
 
     def init_perception(self, perception: "Perception") -> None:
         self.perception = perception
@@ -70,8 +74,8 @@ class Agent(mesa.Agent, ABC):
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
-        action = self.deliberate()
-        self.perception = self.model.do(action, self)
+        self.action = self.deliberate()
+        self.perception = self.model.do(self.action, self)
 
     @abstractmethod
     def deliberate(self) -> Action: ...
