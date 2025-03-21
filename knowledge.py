@@ -11,7 +11,7 @@ import torch
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from action import Merge, Move, Pick, Drop
+from action import Merge, Move, Pick, Drop, Wait
 from objects import Waste
 from utils import Color, Direction, Position
 
@@ -182,13 +182,17 @@ class AllKnowledge(Knowledge):
 
         return Pick()
 
-    def look_around(self) -> Move | None:
+    def look_around(self) -> Move | Wait | None:
         for direction in self.perception:
             if direction == Direction.NONE:
                 continue
             waste = self.perception[direction].waste
             if waste is not None and waste.color == self.color:
-                return Move(direction)
+                move = self.try_move(direction)
+                if move is not None:
+                    return move
+                else :
+                    return Wait()
         return None
 
     def to_tensor(self) -> torch.Tensor:
