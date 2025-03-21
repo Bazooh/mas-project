@@ -1,3 +1,9 @@
+"""
+Group: 14
+Members: Aymeric Conti, Pierre Jourdin
+Date: 15/03/2025
+"""
+
 import random
 import torch
 import torch.nn as nn
@@ -8,7 +14,7 @@ import wandb
 from typing import Any
 from tqdm import tqdm
 
-from action import Drop, Merge, Pick, Wait
+from action import Drop, Merge, Pick
 from agents.RL import RLAgent
 from model import RobotMission, default_agents_params
 from network import MixingNetwork, Network

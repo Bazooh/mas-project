@@ -1,3 +1,9 @@
+"""
+Group: 14
+Members: Aymeric Conti, Pierre Jourdin
+Date: 15/03/2025
+"""
+
 import json
 import solara
 

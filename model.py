@@ -17,13 +17,11 @@ from action import Action
 from agent import Agent
 
 from agents.RL import RLAgent
-from agents.RL import RLAgent as GreenAgent
-from agents.RL import RLAgent as YellowAgent
-from agents.naive import RedNaiveAgent as RedAgent
 
 from objects import Dump, Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
+from agents.all_agents import default_agent, get_agent_class
 
 
 default_agents_params: dict[Color, dict[str, Any]] = {Color.GREEN: {}, Color.YELLOW: {}, Color.RED: {}}
@@ -56,6 +54,9 @@ class RobotMission(mesa.Model):
         n_green_wastes: int = 10,
         n_yellow_wastes: int = 0,
         n_red_wastes: int = 0,
+        green_agent_model: str = default_agent,
+        yellow_agent_model: str = default_agent,
+        red_agent_model: str = default_agent,
         radioactivity_proportions: list[float] = [1 / 3, 1 / 3, 1 / 3],
         seed: int | None = None,
         agent_params: dict[Color, dict[str, Any]] = default_agents_params,
@@ -101,7 +102,8 @@ class RobotMission(mesa.Model):
         }
         self.place_waste(wastes)
 
-        self.place_agents(agent_params)
+        agents_class = [green_agent_model, yellow_agent_model, red_agent_model]
+        self.place_agents({color: get_agent_class(agent, color) for agent, color in zip(agents_class, Color)}, agent_params)
 
         for agent in self.get_agents():
             agent.init_perception(Perception.from_agent(self, agent))
@@ -209,12 +211,12 @@ class RobotMission(mesa.Model):
     def get_agents(self) -> list[Agent]:
         return [cell for cell in self.grid.agents if isinstance(cell, Agent)]
 
-    def place_agents(self, params: dict[Color, dict[str, Any]]) -> None:
-        for color, AgentInstantiator in zip(params, [GreenAgent, YellowAgent, RedAgent]):
+    def place_agents(self, agent_model: dict[Color, type[Agent]], params: dict[Color, dict[str, Any]]) -> None:
+        for color in Color:
             for agent_idx in range(self.n_agents_by_color[color]):
                 pos = self.get_random_pos_with_color(color, no_agent=True)
 
-                self.grid.place_agent(AgentInstantiator(self, color, **params[color]), pos)
+                self.grid.place_agent(agent_model[color](self, color, **params[color]), pos)
 
     def step(self) -> None:
         agents = self.get_agents()
