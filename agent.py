@@ -4,15 +4,16 @@ Members: Aymeric Conti, Pierre Jourdin
 Date: 11/03/2025
 """
 
+import random
 import mesa
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Iterator, cast
 
-from action import Action, Move
+from action import Action
 from knowledge import ChickenKnowledge
 from objects import Waste
-from utils import Color, Direction, Position
+from utils import Color, Position
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -43,6 +44,9 @@ class Inventory:
 
     def clear(self) -> None:
         self.wastes.clear()
+
+    def random(self) -> Waste:
+        return random.choice(self.wastes)
 
     def __contains__(self, waste: Waste) -> bool:
         return waste in self.wastes
@@ -83,7 +87,7 @@ class Agent(mesa.Agent, ABC):
 
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
-        return Move(Direction.random())
+        return Action.random_from_agent(self)
 
 
 GreenAgent = RandomAgent

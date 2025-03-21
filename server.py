@@ -16,7 +16,7 @@ from model import RobotMission
 from agent import Agent
 from objects import Dump, Radioactivity, Waste
 from utils import Color
-from agents.all_agents import str_to_agent, default_agent
+from run import model, model_params
 
 
 def post_process(model: solara.Reactive[RobotMission], ax: Axes) -> None:
@@ -66,78 +66,7 @@ def Save(test):
     solara.Button("Save", on_click=lambda: model.value.save("simulation.json"))
 
 
-model_params = {
-    "width": {
-        "type": "SliderInt",
-        "value": 10,
-        "min": 1,
-        "max": 20,
-    },
-    "height": {
-        "type": "SliderInt",
-        "value": 10,
-        "min": 1,
-        "max": 20,
-    },
-    "n_green_agents": {
-        "type": "SliderInt",
-        "value": 2,
-        "min": 0,
-        "max": 30,
-        "label": "Number of Green agents",
-    },
-    "n_yellow_agents": {
-        "type": "SliderInt",
-        "value": 1,
-        "min": 0,
-        "max": 30,
-        "label": "Number of Yellow agents",
-    },
-    "n_red_agents": {
-        "type": "SliderInt",
-        "value": 1,
-        "min": 0,
-        "max": 40,
-        "label": "Number of Red agents",
-    },
-    "n_red_wastes": {
-        "type": "SliderInt",
-        "value": 0,
-        "min": 0,
-        "max": 40,
-        "label": "Number of Red waste",
-    },
-    "n_yellow_wastes": {
-        "type": "SliderInt",
-        "value": 0,
-        "min": 0,
-        "max": 30,
-        "label": "Number of Yellow waste",
-    },
-    "n_green_wastes": {
-        "type": "SliderInt",
-        "value": 12,
-        "min": 0,
-        "max": 30,
-        "label": "Number of Green waste",
-    },
-    **{
-        f"{color.name.lower()}_agent_model": {
-            "type": "Select",
-            "value": default_agent,
-            "values": list(str_to_agent.keys()),
-            "label": f"Model for {color.name[0] + color.name.lower()[1:]} agent",
-        }
-        for color in Color
-    },
-}
-
-
 if __name__ == "__main__":
-    model = solara.reactive(
-        RobotMission(**{key: (value["value"] if isinstance(value, dict) else value) for key, value in model_params.items()})
-    )
-
     page = SolaraViz(
         model,  # type: ignore
         components=make_graphs(model) + [Save],
