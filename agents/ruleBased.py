@@ -84,7 +84,7 @@ class YellowRuleBasedAgent(Agent):
         return Move(Direction.random())
 
 
-class RedRulebasedAgent(Agent):
+class RedRuleBasedAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
