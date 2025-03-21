@@ -85,5 +85,5 @@ def get_model_args():
 model = solara.reactive(RobotMission(**get_model_args()))
 
 
-def reset_model():
-    model.set(RobotMission(**get_model_args()))
+def reset_model(**kwargs):
+    model.set(RobotMission(**get_model_args() | kwargs))

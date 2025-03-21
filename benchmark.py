@@ -13,43 +13,37 @@ from run import model, reset_model
 from utils import Color
 
 
-def count_colors(state: dict[str, Any]) -> dict[Color, int]:
-    count = {color: 0 for color in Color}
-    for waste in state["wastes"]:
-        count[waste["color"]] += 1
+def count_wastes(state: dict[str, Any]) -> int:
+    count = len(state["wastes"])
     for agent in state["agents"]:
-        for waste_color in agent["inventory"]:
-            count[waste_color] += 1
+        count += len(agent["inventory"])
     return count
 
 
-def update_curves(history: list[dict[str, Any]], curves: dict[Color, list[int]]) -> None:
+def update_curve(history: list[dict[str, Any]], curve: list[int]) -> None:
     for i, h in enumerate(history):
-        for color, count in count_colors(h).items():
-            curves[color][i] += count
+        curve[i] += count_wastes(h)
 
 
-def play(curves: dict[Color, list[int]], steps: int) -> None:
-    reset_model()
+def play(agents_model: str, curve: list[int], steps: int) -> None:
+    reset_model(**{f"{color.name.lower()}_agent_model": agents_model for color in Color})
     model.value.run(steps)
-    update_curves(model.value.history, curves)
+    update_curve(model.value.history, curve)
 
 
-def benchmark(t: int = 100) -> dict[Color, list[int]]:
-    steps = 400
-    curves = {color: [0] * steps for color in Color}
+def benchmark(agents_model: str, n_run: int = 100, steps: int = 400) -> list[int]:
+    curve = [0] * steps
 
-    for _ in tqdm(range(t)):
-        play(curves, steps)
+    for _ in tqdm(range(n_run)):
+        play(agents_model, curve, steps)
 
-    return curves
+    return curve
 
 
 if __name__ == "__main__":
-    curves = benchmark()
-
-    for color, values in curves.items():
-        plt.plot(values, label=color.name, color=color.to_hex())
+    for agent_model in ["Random", "RuleBased", "DQN"]:
+        curve = benchmark(agent_model)
+        plt.plot(curve, label=f"{agent_model}")
 
     plt.xlabel("Steps")
     plt.ylabel("Count")
