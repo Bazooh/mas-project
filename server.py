@@ -106,7 +106,7 @@ model_params = {
     },
     "n_green_wastes": {
         "type": "SliderInt",
-        "value": 10,
+        "value": 12,
         "min": 0,
         "max": 30,
         "label": "Number of Green waste",

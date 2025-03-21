@@ -5,7 +5,7 @@ from agents.ruleBased import GreenRuleBasedAgent, YellowRuleBasedAgent, RedRuleB
 from utils import Color
 
 
-default_agent = "Naive"
+default_agent = "RuleBased"
 
 str_to_agent: dict[str, type[Agent] | dict[Color, type[Agent]]] = {
     "Naive": {
