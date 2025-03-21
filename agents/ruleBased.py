@@ -6,7 +6,7 @@ Date: 14/03/2025
 
 from typing import TYPE_CHECKING
 
-from action import Action, Drop, Move
+from action import Action, Drop, Move ,Wait
 from agent import Agent
 from knowledge import AllKnowledge
 from utils import Color, Direction
@@ -21,6 +21,7 @@ class GreenRuleBasedAgent(Agent):
         self.knowledge = AllKnowledge()
         self.patrol_horizontal_direction = Direction.RIGHT
         self.patrol_vertical_direction = Direction.DOWN
+        self.coop_mode = 0
 
     def next_patrol_direction(self):
         """
@@ -83,7 +84,14 @@ class GreenRuleBasedAgent(Agent):
         Drop waste if possible,
         Finally move randomly.
         """
-
+        if self.coop_mode > 0:
+            if self.coop_mode == 2: # we want to move
+                self.coop_mode = 1
+                return Move(Direction.random())
+            if self.coop_mode == 1:
+                self.coop_mode = 0
+                return Wait()
+            
         # We try to merge
         merge = self.knowledge.try_merge()
         if merge is not None:
@@ -96,9 +104,10 @@ class GreenRuleBasedAgent(Agent):
                 if move is not None:
                     return move
 
-                drop = self.knowledge.try_drop(waste)
-                if drop is not None:
-                    return drop
+                if self.knowledge.perception[Direction.RIGHT].color == Color.YELLOW:
+                    drop = self.knowledge.try_drop(waste)
+                    if drop is not None:
+                        return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
 
@@ -108,10 +117,25 @@ class GreenRuleBasedAgent(Agent):
             return pick
 
         # If there is a waste in an adjacent cell, we move to that cell
-        move = self.knowledge.look_around()
-        if move is not None:
-            return move
-
+        moveOrWait = self.knowledge.look_around()
+        if moveOrWait is not None:
+            return moveOrWait
+        
+        # If we have exactly one waste of our color, and there is an agent of our color having exactly one waste of our color near, we want to cooperate
+        if len(self.inventory) == 1:
+            for waste in self.inventory:
+                if waste.color == self.color:
+                    for direction in self.knowledge.perception:
+                        if direction != Direction.NONE and self.knowledge.perception[direction].agent is not None and self.knowledge.perception[direction].agent.color == self.color and len(self.knowledge.perception[direction].agent.inventory) == 1:
+                            for other_waste in self.knowledge.perception[direction].agent.inventory:
+                                if other_waste.color == self.color:
+                                    # we want to cooperate
+                                    drop = self.knowledge.try_drop(waste)
+                                    if drop is not None:
+                                        self.coop_mode = 2
+                                        return drop
+                                        
+                                        
         # We follow the patrol cycle
         move = self.next_patrol_direction()
         if move is not None:
@@ -125,6 +149,7 @@ class YellowRuleBasedAgent(Agent):
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
         self.patrol_direction = Direction.DOWN  # At start, it will go down, then up, then down, etc.
+        self.coop_mode = 0
 
     def deliberate(self) -> Action:
         """
@@ -133,6 +158,14 @@ class YellowRuleBasedAgent(Agent):
         Drop waste if possible,
         Finally move randomly.
         """
+
+        if self.coop_mode > 0:
+            if self.coop_mode == 2: # we want to move
+                self.coop_mode = 1
+                return Move(Direction.random())
+            if self.coop_mode == 1:
+                self.coop_mode = 0
+                return Wait()
 
         # We try to merge
         merge = self.knowledge.try_merge()
@@ -146,9 +179,10 @@ class YellowRuleBasedAgent(Agent):
                 if move is not None:
                     return move
 
-                drop = self.knowledge.try_drop(waste)
-                if drop is not None:
-                    return drop
+                if self.knowledge.perception[Direction.RIGHT].color == Color.RED:
+                    drop = self.knowledge.try_drop(waste)
+                    if drop is not None:
+                        return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
 
@@ -161,6 +195,20 @@ class YellowRuleBasedAgent(Agent):
         move = self.knowledge.look_around()
         if move is not None:
             return move
+        
+        # If we have exactly one waste of our color, and there is an agent of our color having exactly one waste of our color near, we want to cooperate
+        if len(self.inventory) == 1:
+            for waste in self.inventory:
+                if waste.color == self.color:
+                    for direction in self.knowledge.perception:
+                        if direction != Direction.NONE and self.knowledge.perception[direction].agent is not None and self.knowledge.perception[direction].agent.color == self.color and len(self.knowledge.perception[direction].agent.inventory) == 1:
+                            for other_waste in self.knowledge.perception[direction].agent.inventory:
+                                if other_waste.color == self.color:
+                                    # we want to cooperate
+                                    drop = self.knowledge.try_drop(waste)
+                                    if drop is not None:
+                                        self.coop_mode = 2
+                                        return drop
 
         # If left case is yellow, we move left
         if Direction.LEFT in self.knowledge.perception and self.knowledge.perception[Direction.LEFT].color == Color.YELLOW:
@@ -201,16 +249,6 @@ class RedRuleBasedAgent(Agent):
         Else move randomly.
         """
 
-        # We try to pick red waste
-        pick = self.knowledge.try_pick()
-        if pick is not None:
-            return pick
-
-        # If red waste in adjacent cell, move to that cell
-        move = self.knowledge.look_around()
-        if move is not None:
-            return move
-
         # If we have red waste, move to the dump
         if not self.inventory.is_empty():
             if self.knowledge.pos == self.knowledge.dump_pos:
@@ -224,6 +262,16 @@ class RedRuleBasedAgent(Agent):
                 return Move(Direction.RIGHT)
 
             return Move(Direction.UP if self.knowledge.pos[1] < self.knowledge.dump_pos[1] else Direction.DOWN)
+        
+        # We try to pick red waste
+        pick = self.knowledge.try_pick()
+        if pick is not None:
+            return pick
+
+        # If red waste in adjacent cell, move to that cell
+        move = self.knowledge.look_around()
+        if move is not None:
+            return move
 
         # If left case is red, we move left
         if Direction.LEFT in self.knowledge.perception and self.knowledge.perception[Direction.LEFT].color == Color.RED:
