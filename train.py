@@ -195,16 +195,16 @@ def train(
     dones = torch.tensor(batch.dones, dtype=torch.float32)
 
     q_values = network(observations).gather(2, actions.unsqueeze(-1)).squeeze(-1)
-    # q_total = mixing_net(q_values, states)
+    q_total = mixing_net(q_values, states)
     with torch.no_grad():
         next_actions = network(next_observations).argmax(dim=-1, keepdim=True)
         next_q_values = target_network(next_observations).gather(2, next_actions).squeeze(-1)
-        # next_q_total = mixing_net(next_q_values, next_states)
-        # mixed_rewards = mixing_net(rewards, states)
+        next_q_total = mixing_net(next_q_values, next_states)
+        mixed_rewards = mixing_net(rewards, states)
 
-    target_q_values = rewards + gamma * next_q_values * (1 - dones.unsqueeze(1))
+    target_q_total = mixed_rewards + gamma * next_q_total * (1 - dones.unsqueeze(1))
 
-    loss = F.mse_loss(q_values, target_q_values)
+    loss = F.mse_loss(q_total, target_q_total)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()

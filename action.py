@@ -7,6 +7,7 @@ Date: 11/03/2025
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from random import randint
 from typing import TYPE_CHECKING
 
 from objects import Waste
@@ -23,6 +24,29 @@ class Action(ABC):
 
     @abstractmethod
     def can_apply(self, model: "RobotMission", agent: "Agent") -> bool: ...
+
+    @staticmethod
+    def random_from_agent(agent: Agent) -> Action:
+        action = randint(0, 7)
+        if action == 1:
+            return Move(Direction.UP)
+        elif action == 2:
+            return Move(Direction.DOWN)
+        elif action == 3:
+            return Move(Direction.LEFT)
+        elif action == 4:
+            return Move(Direction.RIGHT)
+        elif action == 5:
+            return Pick()
+        elif action == 6 and len(agent.inventory) > 0:
+            return Drop(agent.inventory.random())
+        elif action == 7 and len(agent.inventory) >= 2:
+            waste1 = agent.inventory.random()
+            waste2 = agent.inventory.random()
+            while waste1 == waste2:
+                waste2 = agent.inventory.random()
+            return Merge(waste1, waste2)
+        return Wait()
 
 
 class Wait(Action):

@@ -113,7 +113,7 @@ class RobotMission(mesa.Model):
         )
         self.datacollector.collect(self)
 
-        self.history = []
+        self.history: list[dict[str, Any]] = []
 
     @property
     def n_agents(self) -> int:
@@ -166,6 +166,12 @@ class RobotMission(mesa.Model):
                 else:
                     color = Color.RED
                 self.grid.place_agent(Radioactivity(self, color), (x, y))
+
+    def run(self, steps: int) -> None:
+        for _ in range(steps):
+            if self.is_done():
+                break
+            self.step()
 
     def place_waste(self, wastes: dict[Color, int]) -> None:
         for color, n_waste in wastes.items():
