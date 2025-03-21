@@ -67,8 +67,18 @@ def Save(test):
 
 
 model_params = {
-    "width": 10,
-    "height": 10,
+    "width": {
+        "type": "SliderInt",
+        "value": 10,
+        "min": 1,
+        "max": 20,
+    },
+    "height": {
+        "type": "SliderInt",
+        "value": 10,
+        "min": 1,
+        "max": 20,
+    },
     "n_green_agents": {
         "type": "SliderInt",
         "value": 2,
