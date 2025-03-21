@@ -15,12 +15,22 @@ The project contains :
 - **Reinforcement Learning (RL) approaches**
 
 ## How to use
+TODO : installations
 To run and see the game, run 'solara run server.py". The tunable parameters then appear on the visualisation : change the cursors, then reset.
 
+## Project structure
+TODO : que font les scripts
+
+## The environment
+TODO
+
 ## Approaches Tried
+
 ### 1. Baselines
 
-We have 
+We have 2 baselines : 
+- Random : just picks a random action
+- Naive : basically merges, picks if possible, else random move
 
 ### 2. Rule-Based Methods
 (Describe your rule-based approach here)
@@ -30,12 +40,6 @@ We have
 
 ## Results & Visualizations
 We can include graphs to illustrate performance comparisons, training progress, and other relevant metrics.
-
-## Scripts Explanation (Coming Soon)
-(Briefly mention that detailed explanations of script roles will be added later)
-
-## Installation & Usage
-(Provide installation steps and how to run the project)
 
 ## References
 (List any relevant references or resources)
