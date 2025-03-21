@@ -51,7 +51,7 @@ class RLAgent(Agent):
         choice = int(torch.argmax(policy).item())
 
         if 1 <= choice <= 4:
-            policy = F.softmax(policy[1:5])
+            policy = F.softmax(policy[1:5], dim=0)
             filtered_policy = torch.where(policy > 0.1, policy, 0)
             return int(torch.multinomial(filtered_policy, 1).item()) + 1
 

@@ -139,7 +139,7 @@ def play(memory: ReplayMemory, network: Network, epsilon: float, epoch: int, sav
             for i, idx in enumerate(selected_indices):
                 best_action = q_values[i].argmax().item()
                 if 1 <= best_action <= 4:
-                    policy = F.softmax(q_values[i, 1:5])
+                    policy = F.softmax(q_values[i, 1:5], dim=0)
                     filtered_policy = torch.where(policy > 0.1, policy, 0)
                     actions[idx] = torch.multinomial(filtered_policy, 1).item() + 1
                 else:
