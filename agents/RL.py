@@ -36,11 +36,11 @@ def action_to_index(action: Action) -> int:
 
 
 class RLAgent(Agent):
-    def __init__(self, model: "RobotMission", color: Color, network_path: str, training_id: int = 0) -> None:
+    def __init__(self, model: "RobotMission", color: Color, training_id: int = 0) -> None:
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
         self.network = Network(24)
-        self.network.load_state_dict(torch.load(network_path))
+        self.network.load_state_dict(torch.load("networks/final.pth"))
         self.training_id = training_id
 
     def policy_to_choice(self, policy: torch.Tensor) -> int:
