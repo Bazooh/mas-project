@@ -36,18 +36,22 @@ def action_to_index(action: Action) -> int:
 
 
 class RLAgent(Agent):
-    def __init__(self, model: "RobotMission", color: Color, training_id: int = 0) -> None:
+    def __init__(self, model: "RobotMission", color: Color, training_id: int = 0, network: Network | None = None) -> None:
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
-        self.network = Network(24)
-        self.network.load_state_dict(torch.load("networks/final.pth"))
+
+        if network is not None:
+            self.network = network
+        else:
+            self.network = Network(24)
+            self.network.load_state_dict(torch.load("networks/final.pth"))
         self.training_id = training_id
 
     def policy_to_choice(self, policy: torch.Tensor) -> int:
         choice = int(torch.argmax(policy).item())
 
         if 1 <= choice <= 4:
-            policy = F.softmax(policy[1:5], dim=0)
+            policy = F.softmax(policy[1:5])
             filtered_policy = torch.where(policy > 0.1, policy, 0)
             return int(torch.multinomial(filtered_policy, 1).item()) + 1
 

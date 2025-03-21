@@ -9,7 +9,7 @@ from __future__ import annotations
 import torch
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from action import Merge, Move, Pick, Drop
 from objects import Waste
@@ -90,10 +90,13 @@ class MultipleKnowledges(Knowledge):
         return torch.cat((self.knowledge1.to_tensor(), self.knowledge2.to_tensor()))
 
 
-class History(Knowledge):
-    def __init__(self, knowledge_type: type[Knowledge]) -> None:
+T = TypeVar("T", bound=Knowledge)
+
+
+class History(Knowledge, Generic[T]):
+    def __init__(self, knowledge_type: type[T]) -> None:
         self.knowledge_type = knowledge_type
-        self.history: list[Knowledge] = []
+        self.history: list[T] = []
 
     def update(self, perception: Perception) -> None:
         new_knowledge = self.knowledge_type()
@@ -178,7 +181,7 @@ class AllKnowledge(Knowledge):
             return None
 
         return Pick()
-    
+
     def look_around(self) -> Move | None:
         for direction in self.perception:
             if direction == Direction.NONE:

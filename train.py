@@ -90,28 +90,21 @@ def get_observations(rl_agents: list[RLAgent]) -> torch.Tensor:
 def compute_reward(model: RobotMission, rl_agents: list[RLAgent], total_reward: torch.Tensor) -> torch.Tensor:
     rewards = torch.zeros((len(rl_agents),))
     for agent in rl_agents:
-        reward_decay = 1  # 0.01 * (100 - model.step_idx)
-
-        reward = 10 * int(isinstance(agent.action, Merge)) * reward_decay
-        reward += (
-            0.1
-            * int(
-                isinstance(agent.action, Pick)
-                and model.is_any_waste_at(agent.get_true_pos())
-                and model.get_waste_at(agent.get_true_pos()).color == agent.color
-            )
-            * reward_decay
+        reward = 10 * int(isinstance(agent.action, Merge))
+        reward += 0.1 * int(
+            isinstance(agent.action, Pick)
+            and model.is_any_waste_at(agent.get_true_pos())
+            and model.get_waste_at(agent.get_true_pos()).color == agent.color
         )
         reward -= int(isinstance(agent.action, Drop) and agent.action.waste.color == agent.color) * 0.2
         reward -= len([waste for waste in agent.inventory if waste.color != agent.color]) * 0.1
-        # reward -= int(isinstance(agent.action, Wait))
 
         rewards[agent.training_id] = reward
     return rewards
 
 
 def play(memory: ReplayMemory, network: Network, epsilon: float, epoch: int, save: bool = False, **kwargs) -> dict[str, Any]:
-    model = RobotMission(**kwargs)
+    model = RobotMission(green_agent_model="DQN", yellow_agent_model="DQN", **kwargs)
     rl_agents = [agent for agent in model.get_agents() if isinstance(agent, RLAgent)]
 
     n_rl_agents = len(rl_agents)
@@ -138,9 +131,19 @@ def play(memory: ReplayMemory, network: Network, epsilon: float, epoch: int, sav
         selected_indices = (~random_mask).nonzero(as_tuple=True)[0]
         if selected_indices.numel() > 0:
             with torch.no_grad():
-                policy = F.softmax(network(observations[selected_indices]), dim=1)
-            filtered_policy = torch.where(policy > 0.1, policy, 0)
-            actions[selected_indices] = torch.multinomial(filtered_policy, 1).squeeze()
+                q_values = network(observations[selected_indices])
+            #     policy = F.softmax(q_values, dim=1)
+            # filtered_policy = torch.where(policy > 0.1, policy, 0)
+            # actions[selected_indices] = torch.multinomial(filtered_policy, 1).squeeze()
+
+            for i, idx in enumerate(selected_indices):
+                best_action = q_values[i].argmax().item()
+                if 1 <= best_action <= 4:
+                    policy = F.softmax(q_values[i, 1:5])
+                    filtered_policy = torch.where(policy > 0.1, policy, 0)
+                    actions[idx] = torch.multinomial(filtered_policy, 1).item() + 1
+                else:
+                    actions[idx] = best_action
 
         agents = model.get_agents()
         random.shuffle(agents)
@@ -197,6 +200,8 @@ def train(
         next_actions = network(next_observations).argmax(dim=-1, keepdim=True)
         next_q_values = target_network(next_observations).gather(2, next_actions).squeeze(-1)
         # next_q_total = mixing_net(next_q_values, next_states)
+        # mixed_rewards = mixing_net(rewards, states)
+
     target_q_values = rewards + gamma * next_q_values * (1 - dones.unsqueeze(1))
 
     loss = F.mse_loss(q_values, target_q_values)
@@ -208,7 +213,7 @@ def train(
         "loss": loss.item(),
         "q_values": q_values.mean().item(),
         "q_values_std": q_values.std().item(),
-        "diff": (q_values < target_q_values).float().mean().item(),
+        # "diff": (q_values < target_q_values).float().mean().item(),
     }
 
 
