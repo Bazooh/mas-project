@@ -51,7 +51,7 @@ class RobotMission(mesa.Model):
         n_green_agents: int = 2,
         n_yellow_agents: int = 1,
         n_red_agents: int = 1,
-        n_green_wastes: int = 10,
+        n_green_wastes: int = 12,
         n_yellow_wastes: int = 0,
         n_red_wastes: int = 0,
         green_agent_model: str = default_agent,

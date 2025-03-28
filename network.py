@@ -40,10 +40,67 @@ class Network(nn.Module):
         return x
 
 
+class MemoryNetwork(nn.Module):
+    """
+    Memory-enhanced Network using LSTM.
+
+    Output:
+        - 0: Wait
+        - 1: Move up
+        - 2: Move down
+        - 3: Move right
+        - 4: Move left
+        - 5: Pick
+        - 6: Drop
+        - 7: Merge
+    """
+
+    def __init__(self, input_size: int, hidden_size: int = 32, num_lstm_layers: int = 1):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_lstm_layers = num_lstm_layers
+
+        self.fc1 = nn.Linear(input_size, 32)
+        self.fc2 = nn.Linear(32, 48)
+
+        self.lstm = nn.LSTM(48, hidden_size, num_lstm_layers, batch_first=True)
+
+        self.fc3 = nn.Linear(hidden_size, 24)
+        self.fc4 = nn.Linear(24, 16)
+        self.fc5 = nn.Linear(16, 8)
+
+    def forward(
+        self, x: torch.Tensor, hidden: tuple[torch.Tensor, torch.Tensor] | None = None
+    ) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        assert len(x.shape) == 3, f"Expected 3D tensor (Batch, seq, input_size = {self.input_size}), got {x.shape}"
+
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+
+        if hidden is None:
+            hidden = self.init_hidden(x.size(0))
+
+        x, hidden = self.lstm(x, hidden)
+
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = self.fc5(x)
+
+        return x, hidden  # type: ignore
+
+    def init_hidden(self, batch_size: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
+        return (
+            torch.zeros(self.num_lstm_layers, batch_size, self.hidden_size),
+            torch.zeros(self.num_lstm_layers, batch_size, self.hidden_size),
+        )
+
+
 class MixingNetwork(nn.Module):
-    def __init__(self, num_agents: int, state_dim: int, hidden_dim: int, height: int, width: int) -> None:
+    def __init__(self, num_agents: int, hidden_dim: int, height: int, width: int) -> None:
         super().__init__()
         self.num_agents = num_agents
+        state_dim = 3 * (num_agents + 2)
 
         self.conv = nn.Conv2d(state_dim, num_agents, 5)
 

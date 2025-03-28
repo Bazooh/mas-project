@@ -58,6 +58,7 @@ model_params = {
         "min": 0,
         "max": 30,
         "label": "Number of Yellow waste",
+        "step": 2,
     },
     "n_green_wastes": {
         "type": "SliderInt",
@@ -65,6 +66,7 @@ model_params = {
         "min": 0,
         "max": 30,
         "label": "Number of Green waste",
+        "step": 4,
     },
     **{
         f"{color.name.lower()}_agent_model": {

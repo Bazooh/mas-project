@@ -25,12 +25,22 @@ class CasePerception:
 
 class Perception:
     def __init__(
-        self, cases: dict[Direction, CasePerception], inventory: Inventory, color: Color, dump_pos: Position
+        self,
+        cases: dict[Direction, CasePerception],
+        inventory: Inventory,
+        color: Color,
+        dump_pos: Position,
+        current_pos: Position,
+        grid_width: int,
+        grid_height: int,
     ) -> None:
         self._cases = cases
         self.inventory = inventory
         self.color = color
         self.dump_pos = dump_pos
+        self.current_pos = current_pos
+        self.grid_width = grid_width
+        self.grid_height = grid_height
 
     @staticmethod
     def from_agent(model: RobotMission, agent: Agent) -> Perception:
@@ -57,11 +67,11 @@ class Perception:
 
             cases[Direction.get_direction(pos, coords)] = CasePerception(_color, _waste, _agent)
 
-        return Perception(cases, agent.inventory, agent.color, model.dump_pos)
+        return Perception(cases, agent.inventory, agent.color, model.dump_pos, pos, model.grid.width, model.grid.height)
 
     def __getitem__(self, key: Direction) -> CasePerception:
         return self._cases[key]
-    
+
     def __iter__(self):
         return iter(self._cases)
 

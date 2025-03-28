@@ -16,7 +16,7 @@ The project contains :
 
 ## How to use
 TODO : installations
-To run and see the game, run 'solara run server.py". The tunable parameters then appear on the visualisation : change the cursors, then reset.
+To run and see the game, run `solara run server.py`. The tunable parameters then appear on the visualisation : change the cursors, then reset.
 
 ## Project structure
 TODO : que font les scripts

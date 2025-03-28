@@ -26,23 +26,23 @@ def update_curve(history: list[dict[str, Any]], curve: list[int]) -> None:
 
 
 def play(agents_model: str, curve: list[int], steps: int) -> None:
-    reset_model(**{f"{color.name.lower()}_agent_model": agents_model for color in Color})
+    reset_model(n_red_agents=0, **{f"{color.name.lower()}_agent_model": agents_model for color in Color})
     model.value.run(steps)
     update_curve(model.value.history, curve)
 
 
-def benchmark(agents_model: str, n_run: int = 100, steps: int = 400) -> list[int]:
+def benchmark(agents_model: str, n_run: int = 100, steps: int = 400) -> list[float]:
     curve = [0] * steps
 
     for _ in tqdm(range(n_run)):
         play(agents_model, curve, steps)
 
-    return curve
+    return [12 - c / n_run for c in curve]
 
 
 if __name__ == "__main__":
-    for agent_model in ["Random", "RuleBased", "DQN"]:
-        curve = benchmark(agent_model)
+    for agent_model in ["Random", "Naive", "RuleBased"]:
+        curve = benchmark(agent_model, steps=100)
         plt.plot(curve, label=f"{agent_model}")
 
     plt.xlabel("Steps")

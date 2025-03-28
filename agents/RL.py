@@ -5,7 +5,6 @@ Date: 15/03/2025
 """
 
 import torch
-import torch.nn.functional as F
 
 from typing import TYPE_CHECKING
 
@@ -13,7 +12,7 @@ from action import Action, Drop, Merge, Move, Pick, Wait
 from agent import Agent
 from knowledge import AllKnowledge
 from utils import Color, Direction
-from network import Network
+from network import MemoryNetwork, Network
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -40,20 +39,27 @@ class RLAgent(Agent):
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
 
+        self.memory = None
+
         if network is not None:
             self.network = network
         else:
-            self.network = Network(24)
-            self.network.load_state_dict(torch.load("networks/final.pth"))
+            self.network = MemoryNetwork(26)
+            models = {
+                Color.GREEN: "networks/finals/lstm_green.pth",
+                Color.YELLOW: "networks/finals/lstm_yellow.pth",
+                Color.RED: "networks/finals/lstm_red.pth",
+            }
+            self.network.load_state_dict(torch.load(models[color]))
         self.training_id = training_id
 
     def policy_to_choice(self, policy: torch.Tensor) -> int:
         choice = int(torch.argmax(policy).item())
 
-        if 1 <= choice <= 4:
-            policy = F.softmax(policy[1:5], dim=0)
-            filtered_policy = torch.where(policy > 0.1, policy, 0)
-            return int(torch.multinomial(filtered_policy, 1).item()) + 1
+        # if 1 <= choice <= 4:
+        #     policy = F.softmax(policy[1:5], dim=0)
+        #     filtered_policy = torch.where(policy > 0.1, policy, 0)
+        #     return int(torch.multinomial(filtered_policy, 1).item()) + 1
 
         return choice
 
@@ -82,8 +88,8 @@ class RLAgent(Agent):
 
     def deliberate(self) -> Action:
         with torch.no_grad():
-            policy = self.network(self.knowledge.to_tensor())
-        return self.deliberate_from_choice(self.policy_to_choice(policy))
+            policy, self.memory = self.network(self.knowledge.to_tensor().unsqueeze(0).unsqueeze(0), self.memory)
+        return self.deliberate_from_choice(self.policy_to_choice(policy.squeeze(0)))
 
     def step_from_choice(self, choice: int) -> int:
         self.action = self.deliberate_from_choice(choice)

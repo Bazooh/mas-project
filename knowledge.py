@@ -117,7 +117,7 @@ class History(Knowledge, Generic[T]):
 
     def to_tensor(self) -> torch.Tensor:
         return self.history[-1].to_tensor()
-    
+
     def get_last(self) -> Knowledge:
         return self.history[-1]
 
@@ -129,6 +129,8 @@ class AllKnowledge(Knowledge):
         self.color: Color
         self.dump_pos: Position
         self.step = 0
+        self.grid_width: int
+        self.grid_height: int
 
     def update(self, perception: Perception) -> None:
         self.perception = perception
@@ -136,6 +138,52 @@ class AllKnowledge(Knowledge):
         self.color = perception.color
         self.dump_pos = perception.dump_pos
         self.step += 1
+        self.grid_width = perception.grid_width
+        self.grid_height = perception.grid_height
+
+    def to_tensor(self) -> torch.Tensor:
+        """
+        Returns a tensor of shape (25,) with the following values :
+        - x position between -1 and 1 (normalized from the center of my color zone)
+        - y position between -1 and 1 (normalized from the center of my color zone)
+        - Number of wastes of my color in my inventory
+        - Number of wastes of the next color in my inventory
+        - Is there a waste on me
+        - Is there a waste of my color on me
+
+        for each direction:
+            - Can I move in this direction (does not take into account if there is an agent in this direction)
+            - Is there a waste in this direction
+            - Is there a waste of my color in this direction
+            - Is there an agent in this direction
+            - Is there an agent of my color in this direction
+        """
+        tensor = torch.zeros(26)
+
+        for waste in self.inventory:
+            tensor[waste.color - self.color] += 1
+
+        waste = self.perception[Direction.NONE].waste
+        tensor[2] = waste is not None
+        tensor[3] = waste is not None and waste.color == self.color
+
+        for i, direction in enumerate(Direction.not_none()):
+            if direction not in self.perception:
+                continue
+
+            case = self.perception[direction]
+            tensor[i * 5 + 4] = case.color <= self.color
+            tensor[i * 5 + 5] = case.waste is not None
+            tensor[i * 5 + 6] = case.waste is not None and case.waste.color == self.color
+            tensor[i * 5 + 7] = case.agent is not None
+            tensor[i * 5 + 8] = case.agent is not None and case.agent.color == self.color
+
+        zone_x, zone_y = self.zone_center
+        x, y = self.pos
+        tensor[24] = (x - zone_x) / (self.zone_width // 2)
+        tensor[25] = (y - zone_y) / (self.grid_height // 2)
+
+        return tensor
 
     @property
     def pos(self) -> Position:
@@ -191,43 +239,16 @@ class AllKnowledge(Knowledge):
                 move = self.try_move(direction)
                 if move is not None:
                     return move
-                else :
+                else:
                     return Wait()
         return None
 
-    def to_tensor(self) -> torch.Tensor:
-        """
-        Returns a tensor of shape (25,) with the following values :
-        - Step / 100
-        - Number of wastes of my color in my inventory
-        - Number of wastes of the next color in my inventory
-        - Is there a waste on me
-        - Is there a waste of my color on me
+    @property
+    def zone_width(self) -> int:
+        return self.grid_width // 3
 
-        for each direction:
-            - Can I move in this direction (does not take into account if there is an agent in this direction)
-            - Is there a waste in this direction
-            - Is there a waste of my color in this direction
-            - Is there an agent in this direction
-            - Is there an agent of my color in this direction
-        """
-        tensor = torch.zeros(24)
-        for waste in self.inventory:
-            tensor[waste.color - self.color] += 1
-
-        waste = self.perception[Direction.NONE].waste
-        tensor[2] = waste is not None
-        tensor[3] = waste is not None and waste.color == self.color
-
-        for i, direction in enumerate(Direction.not_none()):
-            if direction not in self.perception:
-                continue
-
-            case = self.perception[direction]
-            tensor[i * 5 + 4] = case.color <= self.color
-            tensor[i * 5 + 5] = case.waste is not None
-            tensor[i * 5 + 6] = case.waste is not None and case.waste.color == self.color
-            tensor[i * 5 + 7] = case.agent is not None
-            tensor[i * 5 + 8] = case.agent is not None and case.agent.color == self.color
-
-        return tensor
+    @property
+    def zone_center(self) -> Position:
+        x = round(self.zone_width * (self.color - 0.5))
+        y = (self.grid_height - 1) // 2
+        return x, y
