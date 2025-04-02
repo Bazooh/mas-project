@@ -37,7 +37,7 @@ def benchmark(agents_model: str, n_run: int = 100, steps: int = 400) -> list[flo
     for _ in tqdm(range(n_run)):
         play(agents_model, curve, steps)
 
-    return [12 - c / n_run for c in curve]
+    return [c / n_run for c in curve]
 
 
 if __name__ == "__main__":

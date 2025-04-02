@@ -15,6 +15,8 @@ from knowledge import ChickenKnowledge
 from objects import Waste
 from utils import Color, Position
 
+from communication import Mailbox
+
 if TYPE_CHECKING:
     from model import RobotMission
     from perception import Perception
@@ -61,13 +63,14 @@ class Inventory:
 class Agent(mesa.Agent, ABC):
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", color: Color) -> None:
+    def __init__(self, model: "RobotMission", color: Color, mailbox: Mailbox) -> None:
         super().__init__(model)
         self.knowledge = ChickenKnowledge()
         self.perception: Perception
         self.color = color
         self.inventory_capacity = 1 if color == Color.RED else 2
         self.inventory = Inventory(self.inventory_capacity)
+        self.mailbox = mailbox
 
     def init_perception(self, perception: "Perception") -> None:
         self.perception = perception

@@ -23,6 +23,8 @@ from perception import Perception
 from utils import Color, Position
 from agents.all_agents import default_agent, get_agent_class
 
+from communication import MessageService
+
 
 default_agents_params: dict[Color, dict[str, Any]] = {Color.GREEN: {}, Color.YELLOW: {}, Color.RED: {}}
 
@@ -114,6 +116,8 @@ class RobotMission(mesa.Model):
         self.datacollector.collect(self)
 
         self.history: list[dict[str, Any]] = []
+
+        self.message_service = MessageService()
 
     @property
     def n_agents(self) -> int:
