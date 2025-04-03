@@ -15,7 +15,8 @@ from knowledge import ChickenKnowledge
 from objects import Waste
 from utils import Color, Position
 
-from communication import Mailbox
+from communication import Mailbox, Message, ContentType, readable_data_to_message
+from information import AllPositionsInformation
 
 if TYPE_CHECKING:
     from model import RobotMission
@@ -63,14 +64,13 @@ class Inventory:
 class Agent(mesa.Agent, ABC):
     model: "RobotMission"  # type: ignore
 
-    def __init__(self, model: "RobotMission", color: Color, mailbox: Mailbox) -> None:
+    def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model)
         self.knowledge = ChickenKnowledge()
         self.perception: Perception
         self.color = color
         self.inventory_capacity = 1 if color == Color.RED else 2
         self.inventory = Inventory(self.inventory_capacity)
-        self.mailbox = mailbox
 
     def init_perception(self, perception: "Perception") -> None:
         self.perception = perception
@@ -91,6 +91,25 @@ class Agent(mesa.Agent, ABC):
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
         return Action.random_from_agent(self)
+    
+class CommunicationAgent(Agent):
+    def __init__(self, model: "RobotMission", color: Color) -> None:
+        super().__init__(model, color)
+        self.mailbox = Mailbox()
+        self.information = AllPositionsInformation()
+
+    def send_messages(self) -> None:
+        content_type = ContentType.ID_POSITION
+        readable_data = [self.unique_id, self.get_true_pos()]
+        message = readable_data_to_message(readable_data, content_type)
+        self.model.message_service.send_all(self.model.get_agents(), message)
+
+    def step(self) -> None:
+        self.knowledge.update(self.perception)
+        self.information.update(self.mailbox)
+        self.action = self.deliberate()
+        self.send_messages()
+        self.perception = self.model.do(self.action, self)
 
 
 GreenAgent = RandomAgent

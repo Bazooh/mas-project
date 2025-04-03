@@ -14,7 +14,7 @@ import random
 import torch
 
 from action import Action
-from agent import Agent
+from agent import Agent, CommunicationAgent
 
 from agents.RL import RLAgent
 
@@ -23,7 +23,7 @@ from perception import Perception
 from utils import Color, Position
 from agents.all_agents import default_agent, get_agent_class
 
-from communication import MessageService
+from communication import Message
 
 
 default_agents_params: dict[Color, dict[str, Any]] = {Color.GREEN: {}, Color.YELLOW: {}, Color.RED: {}}
@@ -44,6 +44,20 @@ def model_to_n_waste(model: RobotMission) -> dict[Color, int]:
 
     return n_waste
 
+
+class MessageService:
+    """
+    Object possessed by the model that can transfer messages between agents.
+    """
+    def __init__(self):
+        pass
+
+    def send(self, receiver: CommunicationAgent, message: Message):
+        receiver.mailbox.receive(message)
+
+    def send_all(self, receivers: list[CommunicationAgent], message: Message):
+        for receiver in receivers:
+            self.send(receiver, message)
 
 class RobotMission(mesa.Model):
     def __init__(

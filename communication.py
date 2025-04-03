@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from enum import Enum
-from agent import Agent
+import pickle
 
 content_type_to_class: dict[ContentType, type] = {}
 
 class ContentType(Enum):
     MAP = 0
+    ID_POSITION = 1
 
     def to_class(self) -> type:
         return content_type_to_class[self]
@@ -24,6 +25,12 @@ class Message:
 
     def get_content(self) -> bytes:
         return self.content
+    
+def readable_data_to_message(raw_data, content_type : ContentType) -> Message:
+    return Message(pickle.dumps(raw_data), content_type)
+
+def message_to_readable_data(message : Message) -> bytes:
+    return pickle.loads(message.get_content())
 
 class Mailbox:
     """
@@ -33,7 +40,7 @@ class Mailbox:
         self.read_messages: list[Message] = [] # most recent is at the end
         self.unread_messages: list[Message] = [] # most recent is at the end
 
-    def receive(self, message):
+    def receive(self, message) -> None:
         self.unread_messages.append(message)
 
     def read_latest_unread(self) -> Message:
@@ -46,18 +53,5 @@ class Mailbox:
         while len(self.unread_messages) > 0:
             new_message = self.read_latest_unread()
             res.append(new_message)
-        return res
-    
-class MessageService:
-    """
-    Object possessed by the model that can transfer messages between agents.
-    """
-    def __init__(self):
-        pass
-
-    def send(self, receiver: Agent, message: Message):
-        receiver.mailbox.receive(message)
-
-    def send_all(self, receivers: list[Agent], message: Message):
-        for receiver in receivers:
-            self.send(receiver, message)
+        res.reverse() 
+        return res # most recent is at the end

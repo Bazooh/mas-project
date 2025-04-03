@@ -7,7 +7,7 @@ Date: 14/03/2025
 from typing import TYPE_CHECKING
 
 from action import Action, Drop, Move, Wait
-from agent import Agent
+from agent import CommunicationAgent as Agent
 from knowledge import AllKnowledge
 from utils import Color, Direction
 
@@ -257,6 +257,8 @@ class RedRuleBasedAgent(Agent):
         Move to the dump if has red waste,
         Else move randomly.
         """
+        if len(self.information.positions.keys()) > 5 :
+            return Wait()
 
         # If we have red waste, move to the dump
         if not self.inventory.is_empty():
