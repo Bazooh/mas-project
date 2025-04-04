@@ -49,15 +49,16 @@ class MessageService:
     """
     Object possessed by the model that can transfer messages between agents.
     """
-    def __init__(self):
-        pass
+    def __init__(self, model):
+        self.model = model
 
-    def send(self, receiver: CommunicationAgent, message: Message):
+    def send(self, receiver_id: int, message: Message):
+        receiver = self.model.get_agent_by_id(receiver_id)
         receiver.mailbox.receive(message)
 
-    def send_all(self, receivers: list[CommunicationAgent], message: Message):
-        for receiver in receivers:
-            self.send(receiver, message)
+    def send_all(self, receiver_ids: list[int], message: Message):
+        for receiver_id in receiver_ids:
+            self.send(receiver_id, message)
 
 class RobotMission(mesa.Model):
     def __init__(
@@ -131,7 +132,7 @@ class RobotMission(mesa.Model):
 
         self.history: list[dict[str, Any]] = []
 
-        self.message_service = MessageService()
+        self.message_service = MessageService(self)
 
     @property
     def n_agents(self) -> int:
@@ -295,3 +296,12 @@ class RobotMission(mesa.Model):
                     out[offset + (1 if waste.color == cell.color else 2), x, y] += 1
 
         return out
+    
+    def get_agent_by_id(self, agent_id: int) -> Agent :
+        for agent in self.get_agents():
+            if agent.unique_id == agent_id:
+                return agent
+            
+        possible_ids = [agent.unique_id for agent in self.get_agents()]
+        raise ValueError(f"Agent with id {agent_id} not found, the possible ids are {possible_ids}")
+        #return self._agents.get(agent_id)

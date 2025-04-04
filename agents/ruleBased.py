@@ -9,11 +9,22 @@ from typing import TYPE_CHECKING
 from action import Action, Drop, Move, Wait
 from agent import CommunicationAgent as Agent
 from knowledge import AllKnowledge
-from utils import Color, Direction
+from utils import Color, Direction, Position
 
 if TYPE_CHECKING:
     from model import RobotMission
 
+def go_toward_target(x,y,xtarget,ytarget) -> Action | None:
+    if y > ytarget:
+        return Move(Direction.DOWN)
+    elif y < ytarget:
+        return Move(Direction.UP)
+    elif x > xtarget:
+        return Move(Direction.LEFT)
+    elif x < xtarget:
+        return Move(Direction.RIGHT)
+    else:
+        return None
 
 class GreenRuleBasedAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
@@ -107,6 +118,7 @@ class GreenRuleBasedAgent(Agent):
                 if self.knowledge.perception[Direction.RIGHT].color == Color.YELLOW:
                     drop = self.knowledge.try_drop(waste)
                     if drop is not None:
+                        self.target = self.get_true_pos()
                         return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
@@ -186,6 +198,7 @@ class YellowRuleBasedAgent(Agent):
                 if self.knowledge.perception[Direction.RIGHT].color == Color.RED:
                     drop = self.knowledge.try_drop(waste)
                     if drop is not None:
+                        self.target = self.get_true_pos()
                         return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
@@ -218,6 +231,20 @@ class YellowRuleBasedAgent(Agent):
                                     if drop is not None:
                                         self.coop_mode = 2
                                         return drop
+                                    
+        # If we have a target, we go to it
+        if len(self.information.informations["TargetInformation"].targets) > 0: # we have a target
+            xtarget,ytarget = self.information.informations["TargetInformation"].targets[0]
+            x,y = self.get_true_pos()
+            dist = abs(xtarget - x) + abs(ytarget - y)
+            action = None
+            if dist < 2 : # we are already here, we remove it from targets
+                self.information.informations["TargetInformation"].targets.pop(0)
+            else:
+                action = go_toward_target(x,y,xtarget,ytarget)
+
+            if action is not None:
+                return action
 
         # If left case is yellow, we move left
         if Direction.LEFT in self.knowledge.perception and self.knowledge.perception[Direction.LEFT].color == Color.YELLOW:
@@ -257,8 +284,6 @@ class RedRuleBasedAgent(Agent):
         Move to the dump if has red waste,
         Else move randomly.
         """
-        if len(self.information.positions.keys()) > 5 :
-            return Wait()
 
         # If we have red waste, move to the dump
         if not self.inventory.is_empty():
