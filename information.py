@@ -49,5 +49,4 @@ class TargetInformation(Information):
         new_messages = mailbox.read_all_unread(keep_unread=keep_unread)
         for message in new_messages:
             if message.get_type() == ContentType.TARGET:
-                print("a TARGET message is updating an Information")
                 self.targets.append(message_to_readable_data(message))
