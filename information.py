@@ -41,11 +41,13 @@ class TargetInformation(Information):
     """
     self.targets is a list of tuples (x, y) where x and y are the coordinates of the target. Top priority is self.targets[0].
     """
-    def __init__(self, targets : list[tuple[int, int]] = []) -> None:
-        self.targets = targets
+    def __init__(self) -> None:
+        super().__init__()
+        self.targets = []
 
     def update(self, mailbox: Mailbox, keep_unread = False) -> None:
         new_messages = mailbox.read_all_unread(keep_unread=keep_unread)
         for message in new_messages:
             if message.get_type() == ContentType.TARGET:
+                print("a TARGET message is updating an Information")
                 self.targets.append(message_to_readable_data(message))

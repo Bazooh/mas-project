@@ -56,6 +56,10 @@ class MessageService:
         receiver = self.model.get_agent_by_id(receiver_id)
         receiver.mailbox.receive(message)
 
+        from communication import ContentType
+        if message.type == ContentType.TARGET:
+            print('zzzzzzzzzzzzzzzzzzzzzzzzzzz', "receiver_id", receiver_id, "message_type", message.type)
+
     def send_all(self, receiver_ids: list[int], message: Message):
         for receiver_id in receiver_ids:
             self.send(receiver_id, message)

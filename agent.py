@@ -99,10 +99,15 @@ class CommunicationAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
         self.mailbox = Mailbox()
-        self.information = CombinedInformation({
-            "AllPositionsAndColorsInformation": AllPositionsAndColorsInformation(),
-            "TargetInformation": TargetInformation(),
-        })
+        apaci = AllPositionsAndColorsInformation()
+        ti = TargetInformation()
+        dico = {
+            "AllPositionsAndColorsInformation": apaci,
+            "TargetInformation": ti,
+        }
+        i = CombinedInformation(dico)
+        self.information = i
+        print(f"TargetInformation instance for color {self.color}: {id(self.information.informations['TargetInformation'])}")
         self.target = None
 
     def send_messages(self) -> None:
@@ -130,6 +135,21 @@ class CommunicationAgent(Agent):
 
     def step(self) -> None:
         self.knowledge.update(self.perception)
+
+        #debug
+        if self.color == Color.RED:
+            print('number of targets for red: ', len(self.information.informations["TargetInformation"].targets))
+            for read_message in self.mailbox.read_messages:
+                if read_message.get_type() == ContentType.TARGET:
+                    print('there is one TARGET essage read for red')
+            for unread_message in self.mailbox.unread_messages:
+                if unread_message.get_type() == ContentType.TARGET:
+                    print('there is one TARGET message unread for red')
+        if self.color == Color.YELLOW:
+            print('number of targets for yellow: ', len(self.information.informations["TargetInformation"].targets))
+        if self.color == Color.GREEN:
+            print('number of targets for green: ', len(self.information.informations["TargetInformation"].targets))
+
         self.information.update(self.mailbox)
         self.action = self.deliberate()
         self.send_messages()
