@@ -15,15 +15,18 @@ from knowledge import ChickenKnowledge
 from objects import Waste
 from utils import Color, Position
 
-from communication import Mailbox, Message, ContentType, readable_data_to_message
+from communication import Mailbox, ContentType, readable_data_to_message
 from information import AllPositionsAndColorsInformation, TargetInformation, CombinedInformation
 
 if TYPE_CHECKING:
     from model import RobotMission
     from perception import Perception
 
-def get_closest_agent(x: int, y: int, agent_positions: dict[int, tuple[int,int]]):
-    return min(agent_positions, key=lambda agent_id: abs(x - agent_positions[agent_id][0]) + abs(y - agent_positions[agent_id][1]))
+
+def get_closest_agent(x: int, y: int, agent_positions: dict[int, tuple[int, int]]):
+    return min(
+        agent_positions, key=lambda agent_id: abs(x - agent_positions[agent_id][0]) + abs(y - agent_positions[agent_id][1])
+    )
 
 
 class Inventory:
@@ -94,7 +97,8 @@ class Agent(mesa.Agent, ABC):
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
         return Action.random_from_agent(self)
-    
+
+
 class CommunicationAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
@@ -123,14 +127,17 @@ class CommunicationAgent(Agent):
             readable_data = self.target
             message = readable_data_to_message(readable_data, content_type)
             possible_agents = {}
-            for agent_id in self.information.informations["AllPositionsAndColorsInformation"].positions.keys():
-                color = self.information.informations["AllPositionsAndColorsInformation"].colors[agent_id]
+
+            positions_and_colors_info = self.information.informations["AllPositionsAndColorsInformation"]
+            assert isinstance(positions_and_colors_info, AllPositionsAndColorsInformation)
+
+            for agent_id in positions_and_colors_info.positions.keys():
+                color = positions_and_colors_info.colors[agent_id]
                 if color == self.color + 1:
-                    possible_agents[agent_id] = self.information.informations["AllPositionsAndColorsInformation"].positions[agent_id]
+                    possible_agents[agent_id] = positions_and_colors_info.positions[agent_id]
             receiver_id = get_closest_agent(self.get_true_pos()[0], self.get_true_pos()[1], possible_agents)
             self.model.message_service.send(receiver_id, message)
             self.target = None
-
 
     def step(self) -> None:
         self.knowledge.update(self.perception)

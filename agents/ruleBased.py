@@ -8,11 +8,13 @@ from typing import TYPE_CHECKING
 
 from action import Action, Drop, Move, Wait
 from agent import CommunicationAgent, Agent
+from information import TargetInformation
 from knowledge import AllKnowledge
-from utils import Color, Direction, Position
+from utils import Color, Direction
 
 if TYPE_CHECKING:
     from model import RobotMission
+
 
 class GreenRuleBasedAgent(Agent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
@@ -84,13 +86,13 @@ class GreenRuleBasedAgent(Agent):
         Finally move randomly.
         """
         if self.coop_mode > 0:
-            if self.coop_mode == 2: # we want to move
+            if self.coop_mode == 2:  # we want to move
                 self.coop_mode = 1
                 return Move(Direction.random())
             if self.coop_mode == 1:
                 self.coop_mode = 0
                 return Wait()
-            
+
         # We try to merge
         merge = self.knowledge.try_merge()
         if merge is not None:
@@ -119,22 +121,26 @@ class GreenRuleBasedAgent(Agent):
         moveOrWait = self.knowledge.look_around()
         if moveOrWait is not None:
             return moveOrWait
-        
+
         # If we have exactly one waste of our color, and there is an agent of our color having exactly one waste of our color near, we want to cooperate
         if len(self.inventory) == 1:
             for waste in self.inventory:
                 if waste.color == self.color:
                     for direction in self.knowledge.perception:
-                        if direction != Direction.NONE and self.knowledge.perception[direction].agent is not None and self.knowledge.perception[direction].agent.color == self.color and len(self.knowledge.perception[direction].agent.inventory) == 1:
-                            for other_waste in self.knowledge.perception[direction].agent.inventory:
+                        if (
+                            direction != Direction.NONE
+                            and (agent := self.knowledge.perception[direction].agent) is not None
+                            and agent.color == self.color
+                            and len(agent.inventory) == 1
+                        ):
+                            for other_waste in agent.inventory:
                                 if other_waste.color == self.color:
                                     # we want to cooperate
                                     drop = self.knowledge.try_drop(waste)
                                     if drop is not None:
                                         self.coop_mode = 2
                                         return drop
-                                        
-                                        
+
         # We follow the patrol cycle
         move = self.next_patrol_direction()
         if move is not None:
@@ -159,7 +165,7 @@ class YellowRuleBasedAgent(Agent):
         """
 
         if self.coop_mode > 0:
-            if self.coop_mode == 2: # we want to move
+            if self.coop_mode == 2:  # we want to move
                 self.coop_mode = 1
                 return Move(Direction.random())
             if self.coop_mode == 1:
@@ -194,14 +200,19 @@ class YellowRuleBasedAgent(Agent):
         move = self.knowledge.look_around()
         if move is not None:
             return move
-        
+
         # If we have exactly one waste of our color, and there is an agent of our color having exactly one waste of our color near, we want to cooperate
         if len(self.inventory) == 1:
             for waste in self.inventory:
                 if waste.color == self.color:
                     for direction in self.knowledge.perception:
-                        if direction != Direction.NONE and self.knowledge.perception[direction].agent is not None and self.knowledge.perception[direction].agent.color == self.color and len(self.knowledge.perception[direction].agent.inventory) == 1:
-                            for other_waste in self.knowledge.perception[direction].agent.inventory:
+                        if (
+                            direction != Direction.NONE
+                            and (agent := self.knowledge.perception[direction].agent) is not None
+                            and agent.color == self.color
+                            and len(agent.inventory) == 1
+                        ):
+                            for other_waste in agent.inventory:
                                 if other_waste.color == self.color:
                                     # we want to cooperate
                                     drop = self.knowledge.try_drop(waste)
@@ -261,7 +272,7 @@ class RedRuleBasedAgent(Agent):
                 return Move(Direction.RIGHT)
 
             return Move(Direction.UP if self.knowledge.pos[1] < self.knowledge.dump_pos[1] else Direction.DOWN)
-        
+
         # We try to pick red waste
         pick = self.knowledge.try_pick()
         if pick is not None:
@@ -297,7 +308,8 @@ class RedRuleBasedAgent(Agent):
 
         return Move(Direction.random())
 
-def go_toward_target(x,y,xtarget,ytarget) -> Action | None:
+
+def go_toward_target(x, y, xtarget, ytarget) -> Action | None:
     if y > ytarget:
         return Move(Direction.DOWN)
     elif y < ytarget:
@@ -308,6 +320,7 @@ def go_toward_target(x,y,xtarget,ytarget) -> Action | None:
         return Move(Direction.RIGHT)
     else:
         return None
+
 
 class GreenCommunicationRuleBasedAgent(CommunicationAgent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
@@ -514,17 +527,20 @@ class YellowCommunicationRuleBasedAgent(CommunicationAgent):
                                     if drop is not None:
                                         self.coop_mode = 2
                                         return drop
-                                    
+
         # If we have a target, we go to it
-        if len(self.information.informations["TargetInformation"].targets) > 0: # we have a target
-            xtarget,ytarget = self.information.informations["TargetInformation"].targets[0]
-            x,y = self.get_true_pos()
+        target_information = self.information.informations["TargetInformation"]
+        assert isinstance(target_information, TargetInformation)
+
+        if len(target_information.targets) > 0:  # we have a target
+            xtarget, ytarget = target_information.targets[0]
+            x, y = self.get_true_pos()
             dist = abs(xtarget - x) + abs(ytarget - y)
             action = None
-            if dist < 2 : # we are already here, we remove it from targets
-                self.information.informations["TargetInformation"].targets.pop(0)
+            if dist < 2:  # we are already here, we remove it from targets
+                target_information.targets.pop(0)
             else:
-                action = go_toward_target(x,y,xtarget,ytarget)
+                action = go_toward_target(x, y, xtarget, ytarget)
 
             if action is not None:
                 return action
@@ -591,17 +607,20 @@ class RedCommunicationRuleBasedAgent(CommunicationAgent):
         move = self.knowledge.look_around()
         if move is not None:
             return move
-        
+
+        target_information = self.information.informations["TargetInformation"]
+        assert isinstance(target_information, TargetInformation)
+
         # If we have a target, we go to it
-        if len(self.information.informations["TargetInformation"].targets) > 0: # we have a target
-            xtarget,ytarget = self.information.informations["TargetInformation"].targets[0]
-            x,y = self.get_true_pos()
+        if len(target_information.targets) > 0:  # we have a target
+            xtarget, ytarget = target_information.targets[0]
+            x, y = self.get_true_pos()
             dist = abs(xtarget - x) + abs(ytarget - y)
             action = None
-            if dist < 2 : # we are already here, we remove it from targets
-                self.information.informations["TargetInformation"].targets.pop(0)
+            if dist < 2:  # we are already here, we remove it from targets
+                target_information.targets.pop(0)
             else:
-                action = go_toward_target(x,y,xtarget,ytarget)
+                action = go_toward_target(x, y, xtarget, ytarget)
 
             if action is not None:
                 return action
