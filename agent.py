@@ -15,9 +15,15 @@ from knowledge import ChickenKnowledge
 from objects import Waste
 from utils import Color, Position
 
+from communication import Mailbox, Message, ContentType, readable_data_to_message
+from information import AllPositionsAndColorsInformation, TargetInformation, CombinedInformation
+
 if TYPE_CHECKING:
     from model import RobotMission
     from perception import Perception
+
+def get_closest_agent(x: int, y: int, agent_positions: dict[int, tuple[int,int]]):
+    return min(agent_positions, key=lambda agent_id: abs(x - agent_positions[agent_id][0]) + abs(y - agent_positions[agent_id][1]))
 
 
 class Inventory:
@@ -88,6 +94,50 @@ class Agent(mesa.Agent, ABC):
 class RandomAgent(Agent):
     def deliberate(self) -> Action:
         return Action.random_from_agent(self)
+    
+class CommunicationAgent(Agent):
+    def __init__(self, model: "RobotMission", color: Color) -> None:
+        super().__init__(model, color)
+        self.mailbox = Mailbox()
+        apaci = AllPositionsAndColorsInformation()
+        ti = TargetInformation()
+        dico = {
+            "AllPositionsAndColorsInformation": apaci,
+            "TargetInformation": ti,
+        }
+        i = CombinedInformation(dico)
+        self.information = i
+        self.target = None
+
+    def send_messages(self) -> None:
+        # We send our position and color to everyone
+        content_type = ContentType.ID_POSITION_COLOR
+        readable_data = [self.unique_id, self.get_true_pos(), self.color]
+        message = readable_data_to_message(readable_data, content_type)
+        agent_ids = [agent.unique_id for agent in self.model.get_agents()]
+        self.model.message_service.send_all(agent_ids, message)
+
+        # We send our target to the next agent
+        if self.target is not None:
+            content_type = ContentType.TARGET
+            readable_data = self.target
+            message = readable_data_to_message(readable_data, content_type)
+            possible_agents = {}
+            for agent_id in self.information.informations["AllPositionsAndColorsInformation"].positions.keys():
+                color = self.information.informations["AllPositionsAndColorsInformation"].colors[agent_id]
+                if color == self.color + 1:
+                    possible_agents[agent_id] = self.information.informations["AllPositionsAndColorsInformation"].positions[agent_id]
+            receiver_id = get_closest_agent(self.get_true_pos()[0], self.get_true_pos()[1], possible_agents)
+            self.model.message_service.send(receiver_id, message)
+            self.target = None
+
+
+    def step(self) -> None:
+        self.knowledge.update(self.perception)
+        self.information.update(self.mailbox)
+        self.action = self.deliberate()
+        self.send_messages()
+        self.perception = self.model.do(self.action, self)
 
 
 GreenAgent = RandomAgent

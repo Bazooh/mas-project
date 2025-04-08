@@ -14,7 +14,7 @@ import random
 import torch
 
 from action import Action
-from agent import Agent
+from agent import Agent, CommunicationAgent
 
 from agents.RL import RLAgent
 
@@ -22,6 +22,8 @@ from objects import Dump, Radioactivity, Waste
 from perception import Perception
 from utils import Color, Position
 from agents.all_agents import default_agent, get_agent_class
+
+from communication import Message
 
 
 default_agents_params: dict[Color, dict[str, Any]] = {Color.GREEN: {}, Color.YELLOW: {}, Color.RED: {}}
@@ -42,6 +44,21 @@ def model_to_n_waste(model: RobotMission) -> dict[Color, int]:
 
     return n_waste
 
+
+class MessageService:
+    """
+    Object possessed by the model that can transfer messages between agents.
+    """
+    def __init__(self, model):
+        self.model = model
+
+    def send(self, receiver_id: int, message: Message):
+        receiver = self.model.get_agent_by_id(receiver_id)
+        receiver.mailbox.receive(message)
+
+    def send_all(self, receiver_ids: list[int], message: Message):
+        for receiver_id in receiver_ids:
+            self.send(receiver_id, message)
 
 class RobotMission(mesa.Model):
     def __init__(
@@ -114,6 +131,8 @@ class RobotMission(mesa.Model):
         self.datacollector.collect(self)
 
         self.history: list[dict[str, Any]] = []
+
+        self.message_service = MessageService(self)
 
     @property
     def n_agents(self) -> int:
@@ -282,3 +301,12 @@ class RobotMission(mesa.Model):
                     out[offset + (1 if waste.color == cell.color else 2), x, y] += 1
 
         return out
+    
+    def get_agent_by_id(self, agent_id: int) -> Agent :
+        for agent in self.get_agents():
+            if agent.unique_id == agent_id:
+                return agent
+            
+        possible_ids = [agent.unique_id for agent in self.get_agents()]
+        raise ValueError(f"Agent with id {agent_id} not found, the possible ids are {possible_ids}")
+        #return self._agents.get(agent_id)
