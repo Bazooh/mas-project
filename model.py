@@ -119,6 +119,11 @@ class RobotMission(mesa.Model):
     def n_agents(self) -> int:
         return sum(self.n_agents_by_color.values())
 
+    def dump_waste(self, waste: Waste) -> None:
+        """Remove a waste from the grid and add it to the list of dumped wastes."""
+        self.dumped_wastes.append(waste)
+        waste.remove()
+
     def get_n_wastes(self, color: Color) -> int:
         s = 0
         for waste in [cell for cell in self.agents if isinstance(cell, Waste)]:

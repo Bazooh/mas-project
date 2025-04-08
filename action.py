@@ -107,7 +107,7 @@ class Drop(Action):
 
         # Dump the waste
         if self.waste.color == Color.RED and pos == model.dump_pos:
-            model.dumped_wastes.append(self.waste)
+            model.dump_waste(self.waste)
         else:
             model.grid.place_agent(self.waste, pos)
 
@@ -126,6 +126,9 @@ class Merge(Action):
     def apply(self, model: "RobotMission", agent: "Agent") -> None:
         agent.inventory.remove(self.waste1)
         agent.inventory.remove(self.waste2)
+
+        self.waste1.remove()
+        self.waste2.remove()
 
         new_waste = Waste(model, Color(self.waste1.color.value + 1))
         agent.inventory.add(new_waste)
