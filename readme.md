@@ -1,45 +1,117 @@
-Project made for the elective Multi-Agent Systems in CentraleSupelec
-
 # Multi-Agent Systems Project
 
-## Authors :
-- Pierre JOURDIN
+**Elective course project – Multi-Agent Systems @ CentraleSupélec**
+
+## 👥 Authors
+- Pierre JOURDIN  
 - Aymeric CONTI
 
-## Overview
-This project explores multi-agent systems to process radioactive waste using different types of robots.
-The project contains :
-- **The environment**
-- **Visualisation functions**
-- **Rule-based methods**
-- **Reinforcement Learning (RL) approaches**
+## 🧠 Project Overview
 
-## How to use
-TODO : installations
-To run and see the game, run `solara run server.py`. The tunable parameters then appear on the visualisation : change the cursors, then reset.
+This project explores the design and implementation of **multi-agent systems** in a simulated environment for managing **radioactive waste** using various types of autonomous robots.
 
-## Project structure
-TODO : que font les scripts
+The project includes:
+- 🌍 **Environment** definition  
+- 🖼️ **Visualization tools** (interactive frontend with Solara)  
+- 🤖 **Rule-based agent behaviors**  
+  - Without communication  
+  - With communication  
+- 🧬 **Reinforcement Learning (RL) agents**  
+- 📊 **Benchmarking & performance comparison**
 
-## The environment
-TODO
+## 🚀 Getting Started
 
-## Approaches Tried
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-### 1. Baselines
+To launch the interactive simulation:
+```bash
+solara run server.py
+```
+Use the sliders to change parameters and click "Reset" to restart the simulation with the new settings.
 
-We have 2 baselines : 
-- Random : just picks a random action
-- Naive : basically merges, picks if possible, else random move
+To replay a recorded session:
+```bash
+solara run replay.py
+```
 
-### 2. Rule-Based Methods
-(Describe your rule-based approach here)
+## 🗂️ Project Structure
+File | Desccription
+|---|---|
+`action.py` | Implements agent actions: `apply()`, `can_apply()`
+`agent.py` | Abstract base class for all agents
+`benchmark.py` | Runs agents and benchmarks their speed/performance
+`communication.py` | Defines communication protocols between agents
+`information.py` | Manages information flow between agents
+`knowledge.py` | Implements agent memory & perception history
+`model.py` | Defines the Mesa simulation model
+`network.py` | Neural network architectures used for RL agents
+`objects.py` | Implements environment entities: `Waste`, `Radioactivity`, `Dump`, etc.
+`perception.py` | Basic agent perception system
+`record.py` | Record simulations to `.json` format
+`replay.py` | Replays recorded simulations with Solara
+`run.py` | Run simulations without GUI
+`server.py` | Interactive server GUI with Solara
+`train.py` | Train RL agents using Q-Mix
+`utils.py` | Utility classes: `Color`, `Direction`, etc.
 
-### 3. Reinforcement Learning (RL)
-(Describe your RL approach here)
+## 🌐 Environment Details
 
-## Results & Visualizations
-We can include graphs to illustrate performance comparisons, training progress, and other relevant metrics.
+- Grid size: **10 x 10**
+- Agent vision: limited to the **four cardinal neighboring cells**
+- Constraints:
+  - Only **one agent** per cell
+  - Only **one waste** per cell
+- Initial state:
+  - **Agents**: 3 green, 2 yellow, 1 red
+  - **Wastes**: 12 green, 6 yellow, 3 red
+- **Dump location**: (9, 4) — center of the right border
 
-## References
-(List any relevant references or resources)
+## 🤖 Approaches Explored
+
+### 1. 🔁 Baseline Agents
+- **Random**: Chooses actions at random.
+- **Naive**: Picks up or merges if possible, otherwise moves randomly.
+
+### 2. 🧾 Rule-Based Agents
+- **Without Communication**: Agents act independently, using only local observations.
+- **With Communication**: Agents share key information (e.g. waste positions or goals) to better coordinate.
+
+### 3. 🧠 Reinforcement Learning (Q-Mix)
+
+We implemented a **Q-Mix** architecture to enable cooperative behavior among agents under partial observability.
+
+#### Agent Architecture
+- Input: local perception and internal memory
+- Core: **LSTM layer** for sequential input
+- Output: action-value estimates via **fully connected layers**
+
+<img src="images/net.png" alt="Agent Neural Network" width="300">
+
+#### Mixing Network
+- Combines agent Q-values conditioned on the global state
+- Promotes **cooperative strategies** while preserving agent decentralization
+
+#### Target Network
+- Helps stabilize learning by providing consistent targets over time
+
+#### Training Loop
+1. Simulate an episode
+2. Store transitions in a replay buffer
+3. Sample mini-batches
+4. Update both agent networks and the mixing network
+
+#### Training Details
+- Discount factor `γ = 0.9` gave the best results
+- Total training time: **~4 hours**
+
+## 📊 Results & Visualizations
+
+We benchmarked all approaches in terms of:
+- Task completion time
+- Number of collected and delivered wastes
+- Collaboration efficiency
+
+> *(Insert benchmark performance graph here)*
