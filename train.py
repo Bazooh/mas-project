@@ -6,7 +6,6 @@ Date: 15/03/2025
 
 import random
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import wandb
@@ -17,7 +16,7 @@ from tqdm import tqdm
 from action import Merge
 from agents.RL import RLAgent
 from model import RobotMission, default_agents_params
-from network import MemoryNetwork, MixingNetwork, Network
+from network import MemoryNetwork, MixingNetwork
 from utils import Color
 
 
@@ -127,10 +126,6 @@ def compute_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tenso
     rewards = torch.zeros((len(rl_agents),))
     for agent in rl_agents:
         rewards[agent.training_id] = int(isinstance(agent.action, Merge))
-
-    agent = rl_agents[-1]
-    rewards += torch.ones((len(rl_agents),)) * len(agent.inventory) * agent.get_true_pos()[0] / (10 * len(rl_agents))
-    rewards += 5 * torch.ones((len(rl_agents),)) * len(model.dumped_wastes) / len(rl_agents)
     return rewards
 
 
@@ -185,7 +180,7 @@ def play(
         if model.is_done():
             break
 
-        if model.get_n_wastes(Color.GREEN) + model.get_n_wastes(Color.YELLOW) + model.get_n_wastes(Color.RED) == 0:
+        if model.get_n_wastes(Color.GREEN) + model.get_n_wastes(Color.YELLOW) == 0:
             bonus_reward = torch.ones((n_rl_agents,)) * (100 - i) / (10 * n_rl_agents)
 
             transitions[-1].reward += bonus_reward
@@ -193,8 +188,8 @@ def play(
             break
 
         actions = torch.randint(0, 8, (n_rl_agents,), dtype=torch.int64)
-        # green_mask = torch.rand((n_green_agents,)) < epsilon
-        green_mask = torch.zeros((n_green_agents,), dtype=torch.bool)
+        green_mask = torch.rand((n_green_agents,)) < epsilon
+        # green_mask = torch.zeros((n_green_agents,), dtype=torch.bool)
         yellow_mask = torch.rand((n_yellow_agents,)) < epsilon
         # yellow_mask = torch.zeros((n_yellow_agents,), dtype=torch.bool)
         red_mask = torch.rand((n_red_agents,)) < epsilon
@@ -295,9 +290,9 @@ def train(
     yellow_slice = slice(n_green_agents, n_green_agents + n_yellow_agents)
     red_slice = slice(n_green_agents + n_yellow_agents, n_agents)
 
-    with torch.no_grad():
-        green_q_values = get_q_values(green_net, batch, green_slice, batch_size, seq_size)
-        yellow_q_values = get_q_values(yellow_net, batch, yellow_slice, batch_size, seq_size)
+    # with torch.no_grad():
+    green_q_values = get_q_values(green_net, batch, green_slice, batch_size, seq_size)
+    yellow_q_values = get_q_values(yellow_net, batch, yellow_slice, batch_size, seq_size)
     red_q_values = get_q_values(red_net, batch, red_slice, batch_size, seq_size)
     q_values = (
         torch.cat([green_q_values, yellow_q_values, red_q_values], dim=1).gather(-1, batch.actions.unsqueeze(-1)).squeeze()
@@ -367,7 +362,7 @@ def main(use_wandb: bool = True):
     memory = ReplayMemory(10000)
 
     green_net = MemoryNetwork(26)
-    green_net.load_state_dict(torch.load("networks/finals/green_lstm_coop.pth"))
+    # green_net.load_state_dict(torch.load("networks/finals/green_lstm_coop.pth"))
     yellow_net = MemoryNetwork(26)
     # yellow_net.load_state_dict(torch.load("networks/finals/yellow_lstm_coop.pth"))
     red_net = MemoryNetwork(26)
