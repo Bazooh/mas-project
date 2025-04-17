@@ -32,7 +32,7 @@ class ReplayAgent(Agent):
 class ReplayModel(RobotMission):
     """Fake model to simulate a Mesa model from JSON data."""
 
-    def __init__(self, json_path: str = "simulations/20000.json"):
+    def __init__(self, json_path: str = "simulations/38400.json"):
         with open(json_path, "r") as f:
             self.replay_data = json.load(f)
 
@@ -46,6 +46,7 @@ class ReplayModel(RobotMission):
         for agent in self.id_to_agent.values():
             self.grid.place_agent(agent, (0, 0))
 
+        step_index.set(0)
         self.reset_map()
 
     def get_current_step_data(self) -> dict[str, Any]:

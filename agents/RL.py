@@ -46,9 +46,9 @@ class RLAgent(Agent):
         else:
             self.network = MemoryNetwork(26)
             models = {
-                Color.GREEN: "networks/finals/green_lstm_coop.pth",
-                Color.YELLOW: "networks/greedy_yellow32000.pth",
-                Color.RED: "networks/finals/lstm_red.pth",
+                Color.GREEN: "networks/green_final.pth",
+                Color.YELLOW: "networks/yellow_final.pth",
+                Color.RED: "networks/red_final.pth",
             }
             self.network.load_state_dict(torch.load(models[color]))
         self.training_id = training_id

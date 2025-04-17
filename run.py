@@ -26,14 +26,14 @@ model_params = {
     },
     "n_green_agents": {
         "type": "SliderInt",
-        "value": 2,
+        "value": 3,
         "min": 0,
         "max": 30,
         "label": "Number of Green agents",
     },
     "n_yellow_agents": {
         "type": "SliderInt",
-        "value": 1,
+        "value": 2,
         "min": 0,
         "max": 30,
         "label": "Number of Yellow agents",
@@ -47,14 +47,14 @@ model_params = {
     },
     "n_red_wastes": {
         "type": "SliderInt",
-        "value": 0,
+        "value": 3,
         "min": 0,
         "max": 40,
         "label": "Number of Red waste",
     },
     "n_yellow_wastes": {
         "type": "SliderInt",
-        "value": 0,
+        "value": 6,
         "min": 0,
         "max": 30,
         "label": "Number of Yellow waste",
