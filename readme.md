@@ -59,8 +59,8 @@ File | Desccription
 
 ## 🌐 Environment Details
 
-- Grid size: **10 x 10**
-- Agent vision: limited to the **four cardinal neighboring cells**
+- Grid size: **10 x 10**, 30% green, 30% yellow, 40% red
+- Agent vision: limited to the **four cardinal neighboring cells**, in addition to the current cell
 - Constraints:
   - Only **one agent** per cell
   - Only **one waste** per cell
@@ -73,7 +73,7 @@ File | Desccription
 
 ### 1. 🔁 Baseline Agents
 - **Random**: Chooses actions at random.
-- **Naive**: Picks up or merges if possible, otherwise moves randomly.
+- **Naive**: Picks up or merges if possible, drops if it is already merged, moves to adjacent cases if there is something to pick up, moves randomly in last resort.
 
 ### 2. 🧾 Rule-Based Agents
 - **Without Communication**: Agents act independently, using only local observations.
@@ -85,7 +85,7 @@ We implemented a **Q-Mix** architecture to enable cooperative behavior among age
 
 #### Agent Architecture
 - Input: local perception and internal memory
-- Core: **LSTM layer** for sequential input
+- Core: **LSTM layer** for sequential input. The use of a LSTM allows strategies that takes multiple turns.
 - Output: action-value estimates via **fully connected layers**
 
 <img src="images/net.png" alt="Agent Neural Network" width="300">
