@@ -46,22 +46,15 @@ class RLAgent(Agent):
         else:
             self.network = MemoryNetwork(26)
             models = {
-                Color.GREEN: "networks/green_final.pth",
-                Color.YELLOW: "networks/yellow_final.pth",
-                Color.RED: "networks/red_final.pth",
+                Color.GREEN: "networks/greedy_green40000.pth",
+                Color.YELLOW: "networks/greedy_yellow40000.pth",
+                Color.RED: "networks/greedy_red40000.pth",
             }
             self.network.load_state_dict(torch.load(models[color]))
         self.training_id = training_id
 
     def policy_to_choice(self, policy: torch.Tensor) -> int:
-        choice = int(torch.argmax(policy).item())
-
-        # if 1 <= choice <= 4:
-        #     policy = F.softmax(policy[1:5], dim=0)
-        #     filtered_policy = torch.where(policy > 0.1, policy, 0)
-        #     return int(torch.multinomial(filtered_policy, 1).item()) + 1
-
-        return choice
+        return int(torch.argmax(policy).item())
 
     def deliberate_from_choice(self, choice: int) -> Action:
         match choice:

@@ -221,9 +221,18 @@ def play(
         yellow_obs = observations[n_green_agents : n_green_agents + n_yellow_agents]
         red_obs = observations[n_green_agents + n_yellow_agents :]
 
-        green_hiddens = select_best_action(green_net, green_obs, actions, green_selected_indices, green_hiddens)
-        yellow_hiddens = select_best_action(yellow_net, yellow_obs, actions, yellow_selected_indices, yellow_hiddens)
-        red_hiddens = select_best_action(red_net, red_obs, actions, red_selected_indices, red_hiddens)
+        positions = [agent.get_true_pos() for agent in rl_agents]
+        inv_size = [len(agent.inventory) for agent in rl_agents]
+
+        green_hiddens = select_best_action(
+            model, green_net, green_obs, actions, green_selected_indices, green_hiddens, positions, inv_size
+        )
+        yellow_hiddens = select_best_action(
+            model, yellow_net, yellow_obs, actions, yellow_selected_indices, yellow_hiddens, positions, inv_size
+        )
+        red_hiddens = select_best_action(
+            model, red_net, red_obs, actions, red_selected_indices, red_hiddens, positions, inv_size, can_drop=False
+        )
 
         agents = model.get_agents()
         random.shuffle(agents)
@@ -267,17 +276,24 @@ def play(
 
 
 def select_best_action(
+    model: RobotMission,
     network: MemoryNetwork,
     observations: torch.Tensor,
     actions: torch.Tensor,
     selected_indices: torch.Tensor,
     hiddens: tuple[torch.Tensor, torch.Tensor],
+    positions: list[tuple[int, int]],
+    inv_size: list[int],
+    can_drop: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     with torch.no_grad():
         q_values, hiddens = network.forward(observations.unsqueeze(1), hiddens)
         q_values = q_values.squeeze(1)
 
     for i, idx in enumerate(selected_indices):
+        if not can_drop:
+            q_values[i, 6] = float("inf") if inv_size[idx] > 0 and positions[idx] == model.dump_pos else -float("inf")
+
         best_action = q_values[i].argmax().item()
         actions[idx] = best_action
 

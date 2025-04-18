@@ -118,9 +118,13 @@ This agent is essentially the same as the rule-based one, but with added communi
 We acknowledge that full broadcasting is generally to be avoided. In particular, using a limited-range broadcast would have been more appropriate here, but we lacked time to implement it.
 
 
-### 3. 🧠 Reinforcement Learning (Q-Mix)
+### 3. 🧠 Reinforcement Learning
 
-We implemented a **Q-Mix** architecture to enable cooperative behavior among agents under partial observability.
+We implemented a Q-Mix architecture to enable cooperative behavior among agents under partial observability.
+
+To give agents memory and better handle sequential decisions, we used an LSTM layer. This also resolved an issue we had without it: due to the limited observation space and the nature of DQN, agents would sometimes repeat the same action endlessly when perceiving nothing, getting stuck against walls. Adding memory allowed them to break out of these loops.
+
+Q-Mix was key to encouraging cooperation. Without it, agents wouldn’t trade waste items—they’d each try to keep their own to avoid losing reward. This sometimes caused deadlocks when the last required wastes were split between agents. With Q-Mix, cooperative behaviors like trading emerged naturally.
 
 #### Agent Architecture
 - Input: local perception and internal memory
@@ -145,6 +149,9 @@ We implemented a **Q-Mix** architecture to enable cooperative behavior among age
 #### Training Details
 - Discount factor `γ = 0.9` gave the best results
 - Total training time: **~4 hours**
+
+#### Difficulties
+We had a problem with the Red agent, as its task (going to the dump) is very sparse, which hindered training. We attempted to modify its reward function without success. Since the Red agent should never drop its waste unless it is on the dump (i.e., no need for cooperative merging), we decided to hardcode this behavior. This simplification made the task significantly easier, allowing training to proceed without issues.
 
 ## 📊 Results & Visualizations
 

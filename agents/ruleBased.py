@@ -15,10 +15,12 @@ from utils import Color, Direction
 if TYPE_CHECKING:
     from model import RobotMission
 
+
 class BaseRuleBasedAgent(Agent):
     """
     For behaviors common to all colors rule based agents
     """
+
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
         self.knowledge = AllKnowledge()
@@ -27,47 +29,50 @@ class BaseRuleBasedAgent(Agent):
         self.coop_mode = 0
 
     def cooperate(self) -> Action | None:
-        if self.coop_mode > 0:
-            if self.coop_mode == 2:  # we want to move
-                self.coop_mode = 1
-                return Move(Direction.random())
-            if self.coop_mode == 1:
-                self.coop_mode = 0
-                return Wait()
-            
-        return None
-        
+        if self.coop_mode <= 0:
+            return
+
+        if self.coop_mode == 1:
+            self.coop_mode = 0
+            return Wait()
+
+        if self.coop_mode == 2:  # we want to move
+            self.coop_mode = 1
+            return Move(Direction.random())
+
     def try_merge(self) -> Action | None:
         merge = self.knowledge.try_merge()
         if merge is not None:
             return merge
-        
-        return None
-    
+
     def try_start_cooperation(self) -> Action | None:
-        if len(self.inventory) == 1:
-            for waste in self.inventory:
-                if waste.color == self.color:
-                    for direction in self.knowledge.perception:
-                        if (
-                            direction != Direction.NONE
-                            and (agent := self.knowledge.perception[direction].agent) is not None
-                            and agent.color == self.color
-                            and len(agent.inventory) == 1
-                        ):
-                            for other_waste in agent.inventory:
-                                if other_waste.color == self.color:
-                                    # we want to cooperate
-                                    drop = self.knowledge.try_drop(waste)
-                                    if drop is not None:
-                                        self.coop_mode = 2
-                                        return drop
-                                    
-        return None
-    
+        if len(self.inventory) != 1:
+            return
+
+        for waste in self.inventory:
+            if waste.color != self.color:
+                continue
+
+            for direction in self.knowledge.perception:
+                if (
+                    direction == Direction.NONE
+                    or (agent := self.knowledge.perception[direction].agent) is None
+                    or agent.color != self.color
+                    or len(agent.inventory) != 1
+                ):
+                    continue
+
+                for other_waste in agent.inventory:
+                    if other_waste.color == self.color:
+                        # we want to cooperate
+                        drop = self.knowledge.try_drop(waste)
+                        if drop is not None:
+                            self.coop_mode = 2
+                            return drop
+
     def go_to_target(self) -> Action | None:
-        return None
-    
+        return
+
     def next_patrol_direction_template(self, left_obstacle: Color | None, right_obstacle: Color | None) -> Action | None:
         """
         The cycle is :
@@ -94,65 +99,51 @@ class BaseRuleBasedAgent(Agent):
             # we check if right cell is accessible, if so we go patrol_vertical_direction (and maybe change it) and next one will be left
 
             if (
-                (
                 right_obstacle is not None
                 and Direction.RIGHT in self.knowledge.perception
                 and self.knowledge.perception[Direction.RIGHT].color == right_obstacle
-                )
-                or
-                (
-                right_obstacle is None
-                and Direction.RIGHT not in self.knowledge.perception
-                )
-            ):
-                
+            ) or (right_obstacle is None and Direction.RIGHT not in self.knowledge.perception):
                 self.patrol_horizontal_direction = Direction.LEFT
                 # possible to follow patrol_vertical_direction ?
                 if self.patrol_vertical_direction in self.knowledge.perception:
                     return self.knowledge.try_move(self.patrol_vertical_direction)
-                else:
-                    self.patrol_vertical_direction = (
-                        Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
-                    )
-                    return self.knowledge.try_move(self.patrol_vertical_direction)
 
-            else:  # we can go right
-                return self.knowledge.try_move(Direction.RIGHT)
+                self.patrol_vertical_direction = (
+                    Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
+                )
+                return self.knowledge.try_move(self.patrol_vertical_direction)
+
+            # we can go right
+            return self.knowledge.try_move(Direction.RIGHT)
 
         elif self.patrol_horizontal_direction == Direction.LEFT:
             # we check if left cell is accessible, if so we go patrol_vertical_direction (and maybe change it) and next one will be right
 
             if (
-                (
                 left_obstacle is not None
                 and Direction.LEFT in self.knowledge.perception
                 and self.knowledge.perception[Direction.LEFT].color == left_obstacle
-                )
-                or
-                (
-                left_obstacle is None
-                and Direction.LEFT not in self.knowledge.perception
-                )
-            ):
-
+            ) or (left_obstacle is None and Direction.LEFT not in self.knowledge.perception):
                 self.patrol_horizontal_direction = Direction.RIGHT
                 # possible to follow patrol_vertical_direction ?
                 if self.patrol_vertical_direction in self.knowledge.perception:
                     return self.knowledge.try_move(self.patrol_vertical_direction)
-                else:
-                    self.patrol_vertical_direction = (
-                        Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
-                    )
-                    return self.knowledge.try_move(self.patrol_vertical_direction)
-            else:  # we can go left
-                return self.knowledge.try_move(Direction.LEFT)
+
+                self.patrol_vertical_direction = (
+                    Direction.DOWN if self.patrol_vertical_direction == Direction.UP else Direction.UP
+                )
+                return self.knowledge.try_move(self.patrol_vertical_direction)
+
+            return self.knowledge.try_move(Direction.LEFT)
+
+
 class GreenRuleBasedAgent(BaseRuleBasedAgent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         super().__init__(model, color)
 
     def next_patrol_direction(self):
         return self.next_patrol_direction_template(None, Color.YELLOW)
-    
+
     def try_move_yellow(self):
         for waste in self.inventory:
             if waste.color > self.color:
@@ -163,13 +154,11 @@ class GreenRuleBasedAgent(BaseRuleBasedAgent):
                 if self.knowledge.perception[Direction.RIGHT].color == Color.YELLOW:
                     drop = self.knowledge.try_drop(waste)
                     if drop is not None:
-                        if isinstance(self, CommunicationAgent) :
+                        if isinstance(self, CommunicationAgent):
                             self.target = self.get_true_pos()
                         return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
-
-        return None
 
     def deliberate(self) -> Action:
         currentAction = None
@@ -203,7 +192,7 @@ class GreenRuleBasedAgent(BaseRuleBasedAgent):
 
         if currentAction is not None:
             return currentAction
-        
+
         return Move(Direction.random())
 
 
@@ -221,14 +210,12 @@ class YellowRuleBasedAgent(BaseRuleBasedAgent):
                 if self.knowledge.perception[Direction.RIGHT].color == Color.RED:
                     drop = self.knowledge.try_drop(waste)
                     if drop is not None:
-                        if isinstance(self, CommunicationAgent) :
+                        if isinstance(self, CommunicationAgent):
                             self.target = self.get_true_pos()
                         return drop
 
                 return Move(Direction.random(exclude={Direction.RIGHT, Direction.LEFT}))
-            
-        return None
-    
+
     def next_patrol_direction(self):
         return self.next_patrol_direction_template(Color.GREEN, Color.RED)
 
@@ -290,9 +277,7 @@ class RedRuleBasedAgent(BaseRuleBasedAgent):
                 return Move(Direction.RIGHT)
 
             return Move(Direction.UP if self.knowledge.pos[1] < self.knowledge.dump_pos[1] else Direction.DOWN)
-        
-        return None
-    
+
     def next_patrol_direction(self):
         return self.next_patrol_direction_template(Color.YELLOW, None)
 
@@ -334,14 +319,13 @@ def go_toward_target(x, y, xtarget, ytarget) -> Action | None:
         return Move(Direction.LEFT)
     elif x < xtarget:
         return Move(Direction.RIGHT)
-    else:
-        return None
 
 
 class GreenCommunicationRuleBasedAgent(CommunicationAgent, GreenRuleBasedAgent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
         CommunicationAgent.__init__(self, model, color)
         GreenRuleBasedAgent.__init__(self, model, color)
+
 
 class YellowCommunicationRuleBasedAgent(CommunicationAgent, YellowRuleBasedAgent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
@@ -365,7 +349,6 @@ class YellowCommunicationRuleBasedAgent(CommunicationAgent, YellowRuleBasedAgent
             if action is not None:
                 return action
 
-        return None
 
 class RedCommunicationRuleBasedAgent(CommunicationAgent, RedRuleBasedAgent):
     def __init__(self, model: "RobotMission", color: Color) -> None:
@@ -389,5 +372,3 @@ class RedCommunicationRuleBasedAgent(CommunicationAgent, RedRuleBasedAgent):
 
             if action is not None:
                 return action
-
-        return None

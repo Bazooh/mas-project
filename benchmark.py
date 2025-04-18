@@ -29,7 +29,7 @@ def play(agents_model: str, curve: list[int], steps: int) -> None:
     reset_model(
         n_green_agents=3,
         n_yellow_agents=2,
-        n_red_agents=0,
+        n_red_agents=1,
         **{f"{color.name.lower()}_agent_model": agents_model for color in Color},
     )
     model.value.run(steps)
@@ -46,7 +46,7 @@ def benchmark(agents_model: str, n_run: int = 1000, steps: int = 400) -> list[fl
 
 
 if __name__ == "__main__":
-    for agent_model in ["Random", "Naive", "RuleBased", "DQN"]:
+    for agent_model in ["Random", "Naive", "RuleBased", "CommunicationRuleBased", "DQN"]:
         curve = benchmark(agent_model, steps=100)
         plt.plot(curve, label=f"{agent_model}")
 
