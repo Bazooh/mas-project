@@ -96,6 +96,13 @@ class MemoryNetwork(nn.Module):
         )
 
 
+class RedMemoryNetwork(MemoryNetwork):
+    def forward(
+        self, x: torch.Tensor, hidden: tuple[torch.Tensor, torch.Tensor] | None = None
+    ) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+        return super().forward(x, hidden)
+
+
 class MixingNetwork(nn.Module):
     def __init__(self, num_agents: int, hidden_dim: int, height: int, width: int) -> None:
         super().__init__()
