@@ -202,7 +202,7 @@ class RobotMission(mesa.Model):
     def place_waste(self, wastes: dict[Color, int]) -> None:
         for color, n_waste in wastes.items():
             for _ in range(n_waste):
-                pos = self.get_random_pos_with_color(color, no_waste=True)
+                pos = self.get_random_pos_with_color(color, no_waste=True, no_dump=True)
                 self.grid.place_agent(Waste(self, color), pos)
 
     def get_color_at(self, pos: Position) -> Color:
@@ -211,7 +211,7 @@ class RobotMission(mesa.Model):
                 return cell.color
         raise ValueError("No radioactivity found at this position")
 
-    def iter_pos_with_color(self, color: Color, no_agent=False, no_waste=False) -> Iterator[Position]:
+    def iter_pos_with_color(self, color: Color, no_agent=False, no_waste=False, no_dump=False) -> Iterator[Position]:
         for cells, pos in self.grid.coord_iter():
             cells = cast(mesa.space.MultiGridContent, cells)
 
@@ -221,12 +221,15 @@ class RobotMission(mesa.Model):
             if no_waste and self.is_any_waste_at(pos):
                 continue
 
+            if no_dump and self.dump_pos == pos:
+                continue
+
             for cell in cells:
                 if isinstance(cell, Radioactivity) and cell.color == color:
                     yield pos
 
-    def get_random_pos_with_color(self, color: Color, no_agent=False, no_waste=False) -> Position:
-        return random.choice(list(self.iter_pos_with_color(color, no_agent, no_waste)))
+    def get_random_pos_with_color(self, color: Color, no_agent=False, no_waste=False, no_dump=False) -> Position:
+        return random.choice(list(self.iter_pos_with_color(color, no_agent, no_waste, no_dump)))
 
     def is_any_agent_at(self, pos: Position) -> bool:
         return any(isinstance(cell, Agent) for cell in self.grid.iter_cell_list_contents([pos]))

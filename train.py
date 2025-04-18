@@ -13,7 +13,7 @@ import wandb
 from typing import Any
 from tqdm import tqdm
 
-from action import Merge
+from action import Drop, Merge
 from agents.RL import RLAgent
 from model import RobotMission, default_agents_params
 from network import MemoryNetwork, MixingNetwork
@@ -126,6 +126,33 @@ def compute_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tenso
     rewards = torch.zeros((len(rl_agents),))
     for agent in rl_agents:
         rewards[agent.training_id] = int(isinstance(agent.action, Merge))
+
+    red_agent = rl_agents[-1]
+    if red_agent.color != Color.RED:
+        return rewards
+
+    pos = red_agent.get_true_pos()
+
+    if isinstance(red_agent.action, Drop) and pos == model.dump_pos:
+        rewards[red_agent.training_id] += 1
+
+    # if len(red_agent.inventory) > 0:
+    #     dist_to_dump = (pos[0] - model.dump_pos[0]) ** 2 + (pos[1] - model.dump_pos[1]) ** 2
+    #     rewards[red_agent.training_id] += 0.01 / (dist_to_dump + 1)
+
+    return rewards
+
+
+def compute_bonus_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tensor:
+    rewards = torch.zeros((len(rl_agents),))
+
+    red_agent = rl_agents[-1]
+    pos = red_agent.get_true_pos()
+
+    if len(red_agent.inventory) > 0:
+        dist_to_dump = (pos[0] - model.dump_pos[0]) ** 2 + (pos[1] - model.dump_pos[1]) ** 2
+        rewards[red_agent.training_id] += 1 / (dist_to_dump + 1)
+
     return rewards
 
 
@@ -180,13 +207,6 @@ def play(
         if model.is_done():
             break
 
-        if model.get_n_wastes(Color.GREEN) + model.get_n_wastes(Color.YELLOW) == 0:
-            bonus_reward = torch.ones((n_rl_agents,)) * (100 - i) / (10 * n_rl_agents)
-
-            transitions[-1].reward += bonus_reward
-            total_reward += bonus_reward
-            break
-
         actions = torch.randint(0, 8, (n_rl_agents,), dtype=torch.int64)
         green_mask = torch.rand((n_green_agents,)) < epsilon
         # green_mask = torch.zeros((n_green_agents,), dtype=torch.bool)
@@ -231,6 +251,10 @@ def play(
         hiddens = new_hiddens
         if save:
             model.history.append(model.serialize())
+
+    bonus_reward = compute_bonus_reward(model, rl_agents)
+    transitions[-1].reward += bonus_reward
+    total_reward += bonus_reward
 
     transitions[-1].done = True
     game = Game(transitions, observations, state)
@@ -372,7 +396,7 @@ def main(use_wandb: bool = True):
 
     n_green_agents = 3
     n_yellow_agents = 2
-    n_red_agents = 0
+    n_red_agents = 1
 
     mix_network = MixingNetwork(n_green_agents + n_yellow_agents + n_red_agents, 32, 10, 10)
     # mix_network.load_state_dict(torch.load("networks/mix_final.pth"))
@@ -384,7 +408,7 @@ def main(use_wandb: bool = True):
         + list(yellow_net.parameters())
         + list(red_net.parameters())
         + list(mix_network.parameters()),
-        lr=1e-3,
+        lr=1e-4,
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=epochs, T_mult=2, eta_min=1e-6)
 
@@ -446,7 +470,7 @@ def main(use_wandb: bool = True):
         actions_ratio = results["actions_ratio"]
         actions_ratio = {actions_to_str[i]: ratio.item() for i, ratio in enumerate(actions_ratio)}
 
-        pbar.set_description(f"Loss: {infos['loss']:.5e}, Reward: {results['reward']:.2f}, Epsilon: {epsilon:.2f}")
+        pbar.set_description(f"Loss: {infos['loss']:.3e}, Reward: {results['reward']: 5.2f}, Epsilon: {epsilon:.2f}")
 
         if use_wandb:
             wandb.log({**infos, "epsilon": epsilon, "reward": results["reward"], **actions_ratio})
