@@ -76,9 +76,48 @@ File | Desccription
 - **Random**: Chooses actions at random.
 - **Naive**: Picks up or merges if possible, drops if it is already merged, moves to adjacent cases if there is something to pick up, moves randomly in last resort.
 
-### 2. 🧾 Rule-Based Agents
-- **Without Communication**: Agents act independently, using only local observations.
-- **With Communication**: Agents share key information (e.g. waste positions or goals) to better coordinate.
+### 2. 🧾 Rule-Based Agents  
+#### Without Communication: Each agent operates independently, relying solely on its local observations.
+
+This setup is a more advanced version of the naïve agent.  
+Each color has its own agent, they share some behaviors, but not all.
+
+Agents attempt the following actions (detailed below) in priority order:
+- Cooperate (green and yellow)
+- Merge (green and yellow)
+- Drop at the correct location
+- Pick
+- Look around
+- Initiate cooperation (green and yellow)
+- Patrol
+- Random action (fallback)
+
+**Cooperate:**  
+Designed to handle cases where two agents are each holding one waste of the same color and get stuck because they never drop it.  
+A archaic form of communication through environment is used, which can be summarized in the following way : if an agent sees it holds one waste and detects another agent nearby holding another, it enters “cooperation mode” — it drops its waste, leaves the area, and waits a little. The second agent will behave normally (no added code), notice the dropped waste, and go pick it up.
+This effectively fix the issue where they could not end because the 2 remaining wastes were each held by a different agent.
+
+**Drop at the correct location:**  
+- Green and yellow agents drop their waste at the designated frontier.  
+- Red agents drop theirs in the dump.
+
+**Look around:**  
+Check adjacent cells for pickable waste. If found, move to that location.
+
+**Patrol:**  
+Follow a predefined patrol cycle within the agent’s region. The exact cycle is shown in the following figure.
+
+<img src="images/patrol.png" alt="The patrol cycle" width="300">
+
+#### With Communication: Agents share key information (e.g., waste positions or goals) to improve coordination.
+
+This agent is essentially the same as the rule-based one, but with added communication capabilities. In our implementation, two types of messages are exchanged:
+
+- Every turn, each agent broadcasts its current position to all other agents. Each agent then maintains an internal personal record (in self.information) of all agents’ positions.
+- When a green (resp. yellow) agent drops a yellow (resp. red) waste, it sends a message to the nearest yellow (resp. red) agent — determined using the stored position data — instructing them to pick it up.
+
+We acknowledge that full broadcasting is generally to be avoided. In particular, using a limited-range broadcast would have been more appropriate here, but we lacked time to implement it.
+
 
 ### 3. 🧠 Reinforcement Learning
 
