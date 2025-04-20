@@ -40,7 +40,7 @@ model_params = {
     },
     "n_red_agents": {
         "type": "SliderInt",
-        "value": 1,
+        "value": 2,
         "min": 0,
         "max": 40,
         "label": "Number of Red agents",

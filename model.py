@@ -69,7 +69,7 @@ class RobotMission(mesa.Model):
         height: int = 10,
         n_green_agents: int = 3,
         n_yellow_agents: int = 2,
-        n_red_agents: int = 1,
+        n_red_agents: int = 2,
         n_green_wastes: int = 12,
         n_yellow_wastes: int = 6,
         n_red_wastes: int = 3,
