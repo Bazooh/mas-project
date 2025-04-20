@@ -127,18 +127,8 @@ def compute_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tenso
     for agent in rl_agents:
         rewards[agent.training_id] = int(isinstance(agent.action, Merge))
 
-    red_agent = rl_agents[-1]
-    if red_agent.color != Color.RED:
-        return rewards
-
-    pos = red_agent.get_true_pos()
-
-    if isinstance(red_agent.action, Drop) and pos == model.dump_pos:
-        rewards[red_agent.training_id] += 1
-
-    # if len(red_agent.inventory) > 0:
-    #     dist_to_dump = (pos[0] - model.dump_pos[0]) ** 2 + (pos[1] - model.dump_pos[1]) ** 2
-    #     rewards[red_agent.training_id] += 0.01 / (dist_to_dump + 1)
+        if agent.color == Color.RED and isinstance(agent.action, Drop) and agent.get_true_pos() == model.dump_pos:
+            rewards[agent.training_id] += 1
 
     return rewards
 
@@ -146,12 +136,11 @@ def compute_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tenso
 def compute_bonus_reward(model: RobotMission, rl_agents: list[RLAgent]) -> torch.Tensor:
     rewards = torch.zeros((len(rl_agents),))
 
-    red_agent = rl_agents[-1]
-    pos = red_agent.get_true_pos()
-
-    if len(red_agent.inventory) > 0:
-        dist_to_dump = (pos[0] - model.dump_pos[0]) ** 2 + (pos[1] - model.dump_pos[1]) ** 2
-        rewards[red_agent.training_id] += 1 / (dist_to_dump + 1)
+    for agent in rl_agents:
+        if agent.color == Color.RED and len(agent.inventory) > 0:
+            x, y = agent.get_true_pos()
+            dist_to_dump = (x - model.dump_pos[0]) ** 2 + (y - model.dump_pos[1]) ** 2
+            rewards[agent.training_id] += 1 / (dist_to_dump + 1)
 
     return rewards
 
@@ -203,7 +192,7 @@ def play(
     state = model.to_tensor()
     total_reward = torch.zeros((len(rl_agents),))
     actions_ratio = torch.zeros((8,))
-    for i in range(100):
+    for i in range(200):
         if model.is_done():
             break
 
@@ -316,7 +305,7 @@ def train(
     memory: ReplayMemory,
     batch_size: int = 128,
     gamma: float = 0.9,
-    seq_size: int = 10,
+    seq_size: int = 50,
 ) -> dict[str, float]:
     if len(memory) < batch_size:
         return {"loss": 0, "q_values": 0}
@@ -402,29 +391,31 @@ def main(use_wandb: bool = True):
     memory = ReplayMemory(10000)
 
     green_net = MemoryNetwork(26)
-    # green_net.load_state_dict(torch.load("networks/finals/green_lstm_coop.pth"))
+    green_net.load_state_dict(torch.load("networks/greedy_green90000.pth"))
     yellow_net = MemoryNetwork(26)
-    # yellow_net.load_state_dict(torch.load("networks/finals/yellow_lstm_coop.pth"))
+    yellow_net.load_state_dict(torch.load("networks/greedy_yellow90000.pth"))
     red_net = MemoryNetwork(26)
+    red_net.load_state_dict(torch.load("networks/greedy_red90000.pth"))
     green_target_net = MemoryNetwork(26)
     yellow_target_net = MemoryNetwork(26)
     red_target_net = MemoryNetwork(26)
 
     n_green_agents = 3
     n_yellow_agents = 2
-    n_red_agents = 1
+    n_red_agents = 2
 
     mix_network = MixingNetwork(n_green_agents + n_yellow_agents + n_red_agents, 32, 10, 10)
-    # mix_network.load_state_dict(torch.load("networks/mix_final.pth"))
+    mix_network.load_state_dict(torch.load("networks/greedy_mix90000.pth"))
 
     epochs = 100_000
+    warmup_epochs = 2_000
 
     optimizer = optim.Adam(
         list(green_net.parameters())
         + list(yellow_net.parameters())
         + list(red_net.parameters())
         + list(mix_network.parameters()),
-        lr=1e-4,
+        lr=1e-6,
     )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=epochs, T_mult=2, eta_min=1e-6)
 
@@ -435,7 +426,7 @@ def main(use_wandb: bool = True):
 
     pbar = tqdm(range(epochs))
 
-    epsilon_start = 0.8
+    epsilon_start = 0.01
     epsilon_end = 0.01
     epsilon_epochs = epochs * 0.3
 
@@ -468,6 +459,10 @@ def main(use_wandb: bool = True):
             n_red_agents=n_red_agents,
             save=i % 400 == 0,
         )
+
+        if i < warmup_epochs:
+            continue
+
         infos = train(
             green_net,
             green_target_net,
@@ -482,6 +477,7 @@ def main(use_wandb: bool = True):
             optimizer,
             scheduler,
             memory,
+            gamma=0.9,
         )
         actions_ratio = results["actions_ratio"]
         actions_ratio = {actions_to_str[i]: ratio.item() for i, ratio in enumerate(actions_ratio)}

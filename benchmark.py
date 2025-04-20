@@ -29,7 +29,7 @@ def play(agents_model: str, curve: list[int], steps: int) -> None:
     reset_model(
         n_green_agents=3,
         n_yellow_agents=2,
-        n_red_agents=1,
+        n_red_agents=2,
         **{f"{color.name.lower()}_agent_model": agents_model for color in Color},
     )
     model.value.run(steps)

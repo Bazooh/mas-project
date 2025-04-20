@@ -18,6 +18,7 @@ The project includes:
   - With communication  
 - 🧬 **Reinforcement Learning (RL) agents**  
 - 📊 **Benchmarking & performance comparison**
+- 🔮 **Perspectives**
 
 ## 🚀 Getting Started
 
@@ -116,9 +117,16 @@ We had a problem with the Red agent, as its task (going to the dump) is very spa
 
 ## 📊 Results & Visualizations
 
-We benchmarked all approaches in terms of:
-- Task completion time
-- Number of collected and delivered wastes
-- Collaboration efficiency
+The graph below shows the performance of each agent.
+We observe that the RL agent performs best initially but eventually gets outperformed by the communication agent, as it doesn't explore the entire grid.
+The benchmark was run over 100 steps to match the training setup.
 
-> *(Insert benchmark performance graph here)*
+<img src="images/benchmark.png" alt="Benchmark" width="600" style="display: block; margin: 0 auto;">
+
+## 🔮 Perspectives
+
+One improvement we could have made is implementing communication in the RL agent. This could be done by introducing a shared vector, passed as an additional input to the network and also produced as an output. This way, agents could learn to communicate through this vector during training.
+
+Another possible extension would be to modify the environment—for example, by adding obstacles or assigning movement costs to certain tiles.
+
+The RL agent is more versatile, as it can be retrained to adapt to new environments. In contrast, the other agents would require complete redesigns to handle such changes.

@@ -5,6 +5,6 @@ venv/
 envSMA/
 wandb/
 simulations/
-networks/
+# networks/
 
 Tutorials/
